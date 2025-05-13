@@ -3,7 +3,10 @@ from flask_cors import CORS
 import yaml, os
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={
+    r"/submit": {"origins": "*"},
+    r"/config": {"origins": "*"}
+})
 
 temp_configs = {}  # In-memory dynamic config store
 

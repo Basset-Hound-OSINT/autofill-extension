@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Email Input</title>
+</head>
+<body>
+  <h1>Have I Been PWNED</h1>
+  <form id="emailForm" method="POST" action="/submit" target="_blank">
+    <label for="email">Email Input:</label>
+    <input type="email" name="email" id="email" placeholder="Enter your email" required>
+    <input type="hidden" name="target" value="haveibeenpwned.com">
+    <button type="submit">Submit</button>
+    </form>
+</body>
+</html>

@@ -1,3 +1,3 @@
 fields:
-  # Targets the main email input field on the real site
-  'input#AccountCheck_Account': 'test@example.com'
+  email:
+    'input#AccountCheck_Account': 'test@example.com'

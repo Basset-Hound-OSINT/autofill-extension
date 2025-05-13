@@ -14,12 +14,20 @@ def index():
 @app.route('/submit', methods=['POST'])
 def submit():
     email = request.form.get('email')
+    phone = request.form.get('phone')  # optional future field
     target_domain = request.form.get('target') or 'haveibeenpwned.com'
+
     temp_configs[target_domain] = {
         'fields': {
-            'input#AccountCheck_Account': email
+            'email': {
+                'input#AccountCheck_Account': email
+            },
+            'phone': {
+                'input#PhoneField': phone or ''
+            }
         }
     }
+
     return redirect(f"https://{target_domain}/")
 
 @app.route('/config', methods=['GET'])

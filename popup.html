@@ -4,10 +4,44 @@
   <meta charset="UTF-8">
   <title>Basset Hound AutoFiller</title>
   <style>
-    body { font-family: sans-serif; padding: 10px; }
-    .field { padding: 5px; margin-bottom: 5px; }
-    .empty { color: gray; opacity: 0.5; }
-    button { margin-top: 10px; width: 100%; }
+    body {
+      font-family: sans-serif;
+      padding: 10px;
+      width: 250px;
+      box-sizing: border-box;
+    }
+    h3 {
+      margin-top: 0;
+    }
+    .field {
+      padding: 5px;
+      margin-bottom: 5px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #f9f9f9;
+    }
+    .field.empty {
+      color: gray;
+      opacity: 0.5;
+      font-style: italic;
+    }
+    .field-type {
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    button {
+      margin-top: 10px;
+      width: 100%;
+      padding: 10px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
   </style>
 </head>
 <body>

@@ -12,7 +12,7 @@ The extension is designed to work as part of the larger Basset Hound OSINT toolk
 
 ---
 
-## 2. Current State (December 2024)
+## 2. Current State (December 2024, Updated December 27 - v2.1.0)
 
 ### Completed Features
 
@@ -28,15 +28,22 @@ The extension is designed to work as part of the larger Basset Hound OSINT toolk
   - Network monitoring (request/response tracking)
   - Request interception (block, modify, redirect)
 
+- **Advanced Features (Added Dec 27)**
+  - Shadow DOM support (deep querying, traversal, element interaction)
+  - iframe/frame support (detection, cross-frame messaging, content access)
+  - XPath element selection (full XPath support alongside CSS selectors)
+  - CAPTCHA detection (reCAPTCHA v2/v3, hCaptcha, Cloudflare Turnstile, FunCaptcha, Geetest)
+
 - **Testing Infrastructure**
   - Jest unit tests for all modules
-  - Integration tests for end-to-end flows
+  - Integration tests for end-to-end flows (error-handling, multi-tab)
   - Manual test pages for browser testing
 
 - **Documentation**
   - Comprehensive README
   - API documentation
-  - Development roadmap
+  - Development roadmap (consolidated)
+  - Rsync deployment guide
 
 ---
 
@@ -53,6 +60,7 @@ The extension is designed to work as part of the larger Basset Hound OSINT toolk
 - `networkMonitor.js` - Network request/response monitoring
 - `requestInterceptor.js` - Request blocking, modification, redirection
 - `formDetector.js` - Form field detection and analysis
+- `captcha-detector.js` - CAPTCHA detection and state tracking
 
 ### Tests (`tests/`)
 - `unit/` - Jest unit tests for individual modules
@@ -60,7 +68,8 @@ The extension is designed to work as part of the larger Basset Hound OSINT toolk
 - `manual/` - HTML test pages for browser testing
 
 ### Documentation (`docs/`)
-- `ROADMAP.md` - Development phases and task status
+- `ROADMAP.md` - Development phases and task status (consolidated from multiple files)
+- `RSYNC.md` - Rsync deployment commands for remote testing server
 - `API.md` - WebSocket command API reference
 
 ---
@@ -100,16 +109,20 @@ Web Page
 
 ## 5. Next Steps / TODOs
 
-### Phase 3: Testing Validation (Current)
-- [ ] Complete integration test coverage
+### Phase 3: Testing Validation (COMPLETED)
+- [x] Complete integration test coverage (error-handling.test.js, multi-tab.test.js added Dec 27)
 - [ ] Validate all manual test scenarios
 - [ ] Performance testing under load
 
-### Phase 4: Advanced Features
-- [ ] Shadow DOM support for modern web components
-- [ ] Frame and iframe support
-- [ ] Multi-tab management and coordination
-- [ ] Enhanced element selection (XPath, advanced CSS)
+### Phase 4: Advanced Features (IN PROGRESS - Major items completed Dec 27)
+- [x] Shadow DOM support for modern web components
+- [x] Frame and iframe support (get_frames, get_frame_info, execute_in_frame commands)
+- [x] Enhanced element selection (XPath support via evaluateXPath())
+- [x] CAPTCHA detection (reCAPTCHA, hCaptcha, Turnstile, FunCaptcha, Geetest)
+- [ ] Tab grouping and state tracking
+- [ ] File upload handling
+- [ ] Multi-step form support
+- [ ] Browser fingerprint randomization
 
 ### Phase 5: Backend Integration
 - [ ] Integration with main basset-hound project
@@ -182,4 +195,4 @@ npm run test:watch
 
 ---
 
-*Last Updated: December 2024*
+*Last Updated: December 27, 2024*

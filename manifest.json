@@ -7,11 +7,13 @@
   "permissions": [
     "activeTab",
     "tabs",
+    "tabGroups",
     "scripting",
     "storage",
     "notifications",
     "cookies",
     "webRequest",
+    "webNavigation",
     "declarativeNetRequest",
     "declarativeNetRequestWithHostAccess",
     "declarativeNetRequestFeedback"
@@ -30,12 +32,15 @@
       "matches": ["<all_urls>"],
       "js": [
         "utils/logger.js",
+        "utils/rate-limiter.js",
+        "utils/user-agent-rotator.js",
+        "utils/captcha-detector.js",
         "utils/form-detector.js",
         "data/form-templates.js",
         "content.js"
       ],
       "run_at": "document_idle",
-      "all_frames": false
+      "all_frames": true
     }
   ],
 
@@ -59,7 +64,11 @@
     {
       "resources": [
         "utils/logger.js",
+        "utils/rate-limiter.js",
+        "utils/user-agent-rotator.js",
+        "utils/captcha-detector.js",
         "utils/form-detector.js",
+        "utils/security/input-validator.js",
         "data/form-templates.js"
       ],
       "matches": ["<all_urls>"]

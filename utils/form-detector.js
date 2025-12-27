@@ -34,11 +34,16 @@ const FormTypes = {
 };
 
 // =============================================================================
-// CAPTCHA Type Definitions
+// CAPTCHA Type Definitions (Legacy - use CaptchaDetector for new code)
 // =============================================================================
+
+// Note: For comprehensive CAPTCHA detection, use the CaptchaDetector class
+// from captcha-detector.js. These types are kept for backward compatibility.
 
 const CaptchaTypes = {
   RECAPTCHA_V2: 'recaptcha_v2',
+  RECAPTCHA_V2_CHECKBOX: 'recaptcha_v2_checkbox',
+  RECAPTCHA_V2_INVISIBLE: 'recaptcha_v2_invisible',
   RECAPTCHA_V3: 'recaptcha_v3',
   HCAPTCHA: 'hcaptcha',
   CLOUDFLARE_TURNSTILE: 'cloudflare_turnstile',
@@ -46,6 +51,19 @@ const CaptchaTypes = {
   IMAGE_CAPTCHA: 'image_captcha',
   TEXT_CAPTCHA: 'text_captcha',
   MATH_CAPTCHA: 'math_captcha',
+  AUDIO_CAPTCHA: 'audio_captcha',
+  SLIDER_CAPTCHA: 'slider_captcha',
+  GEETEST: 'geetest',
+  UNKNOWN: 'unknown'
+};
+
+const CaptchaStates = {
+  UNSOLVED: 'unsolved',
+  SOLVED: 'solved',
+  EXPIRED: 'expired',
+  CHALLENGE_VISIBLE: 'challenge_visible',
+  LOADING: 'loading',
+  INVISIBLE: 'invisible',
   UNKNOWN: 'unknown'
 };
 
@@ -545,13 +563,33 @@ class FormDetector {
    * @returns {Object|null} CAPTCHA detection result
    */
   detectCaptcha(container) {
+    // Use CaptchaDetector if available for comprehensive detection
+    if (typeof CaptchaDetector !== 'undefined') {
+      const detector = new CaptchaDetector({ logger: this.logger });
+      const result = detector.detectInContainer(container);
+      if (result) {
+        return result;
+      }
+    }
+
+    // Fallback to built-in detection
+
     // Check for reCAPTCHA v2
     const recaptchaV2 = container.querySelector('.g-recaptcha, [data-sitekey]');
     if (recaptchaV2) {
+      const isInvisible = recaptchaV2.getAttribute('data-size') === 'invisible';
+      const responseInput = container.querySelector('[name="g-recaptcha-response"]');
+      const state = (responseInput && responseInput.value)
+        ? CaptchaStates.SOLVED
+        : CaptchaStates.UNSOLVED;
+
       return {
-        type: CaptchaTypes.RECAPTCHA_V2,
+        type: isInvisible ? CaptchaTypes.RECAPTCHA_V2_INVISIBLE : CaptchaTypes.RECAPTCHA_V2_CHECKBOX,
+        provider: 'google',
         siteKey: recaptchaV2.getAttribute('data-sitekey'),
+        state,
         selector: this.generateFieldSelector(recaptchaV2),
+        boundingBox: this.getBoundingBox(recaptchaV2),
         visible: this.isElementVisible(recaptchaV2)
       };
     }
@@ -563,7 +601,9 @@ class FormDetector {
       const siteKey = src.match(/render=([^&]+)/)?.[1];
       return {
         type: CaptchaTypes.RECAPTCHA_V3,
+        provider: 'google',
         siteKey,
+        state: CaptchaStates.INVISIBLE,
         visible: false
       };
     }
@@ -571,11 +611,19 @@ class FormDetector {
     // Check for hCaptcha
     const hcaptcha = container.querySelector('.h-captcha, [data-hcaptcha-sitekey]');
     if (hcaptcha) {
+      const responseInput = container.querySelector('[name="h-captcha-response"]');
+      const state = (responseInput && responseInput.value)
+        ? CaptchaStates.SOLVED
+        : CaptchaStates.UNSOLVED;
+
       return {
         type: CaptchaTypes.HCAPTCHA,
+        provider: 'hcaptcha',
         siteKey: hcaptcha.getAttribute('data-sitekey') ||
                  hcaptcha.getAttribute('data-hcaptcha-sitekey'),
+        state,
         selector: this.generateFieldSelector(hcaptcha),
+        boundingBox: this.getBoundingBox(hcaptcha),
         visible: this.isElementVisible(hcaptcha)
       };
     }
@@ -583,40 +631,105 @@ class FormDetector {
     // Check for Cloudflare Turnstile
     const turnstile = container.querySelector('.cf-turnstile, [data-turnstile-sitekey]');
     if (turnstile) {
+      const responseInput = container.querySelector('[name="cf-turnstile-response"]');
+      const state = (responseInput && responseInput.value)
+        ? CaptchaStates.SOLVED
+        : CaptchaStates.UNSOLVED;
+
       return {
         type: CaptchaTypes.CLOUDFLARE_TURNSTILE,
+        provider: 'cloudflare',
         siteKey: turnstile.getAttribute('data-sitekey'),
+        state,
         selector: this.generateFieldSelector(turnstile),
+        boundingBox: this.getBoundingBox(turnstile),
         visible: this.isElementVisible(turnstile)
       };
     }
 
     // Check for FunCaptcha/Arkose
-    const funcaptcha = container.querySelector('#funcaptcha, [data-pkey]');
+    const funcaptcha = container.querySelector('#funcaptcha, [data-pkey], [id*="arkose"]');
     if (funcaptcha) {
+      const responseInput = container.querySelector('[name="fc-token"]');
+      const state = (responseInput && responseInput.value)
+        ? CaptchaStates.SOLVED
+        : CaptchaStates.UNSOLVED;
+
       return {
         type: CaptchaTypes.FUNCAPTCHA,
+        provider: 'arkose',
         publicKey: funcaptcha.getAttribute('data-pkey'),
+        state,
         selector: this.generateFieldSelector(funcaptcha),
+        boundingBox: this.getBoundingBox(funcaptcha),
         visible: this.isElementVisible(funcaptcha)
+      };
+    }
+
+    // Check for Geetest
+    const geetest = container.querySelector('.geetest_holder, [class*="geetest"]');
+    if (geetest) {
+      const validateInput = container.querySelector('[name*="geetest_validate"]');
+      const state = (validateInput && validateInput.value)
+        ? CaptchaStates.SOLVED
+        : CaptchaStates.UNSOLVED;
+
+      return {
+        type: CaptchaTypes.GEETEST,
+        provider: 'geetest',
+        state,
+        selector: this.generateFieldSelector(geetest),
+        boundingBox: this.getBoundingBox(geetest),
+        visible: this.isElementVisible(geetest)
+      };
+    }
+
+    // Check for slider CAPTCHA
+    const sliderCaptcha = container.querySelector(
+      '.slider-captcha, .slide-verify, [class*="slider-captcha"], [class*="slide-verify"]'
+    );
+    if (sliderCaptcha) {
+      const completed = sliderCaptcha.classList.contains('success') ||
+                       sliderCaptcha.querySelector('.success');
+      return {
+        type: CaptchaTypes.SLIDER_CAPTCHA,
+        provider: 'slider',
+        state: completed ? CaptchaStates.SOLVED : CaptchaStates.UNSOLVED,
+        selector: this.generateFieldSelector(sliderCaptcha),
+        boundingBox: this.getBoundingBox(sliderCaptcha),
+        visible: this.isElementVisible(sliderCaptcha)
       };
     }
 
     // Check for generic image CAPTCHA
     const captchaImage = container.querySelector(
-      'img[src*="captcha"], img[alt*="captcha"], img[id*="captcha"], img[class*="captcha"]'
+      'img[src*="captcha"], img[alt*="captcha" i], img[id*="captcha" i], img[class*="captcha" i]'
     );
     if (captchaImage) {
       const captchaInput = container.querySelector(
-        'input[name*="captcha"], input[id*="captcha"]'
+        'input[name*="captcha" i], input[id*="captcha" i]'
       );
+      const state = (captchaInput && captchaInput.value)
+        ? CaptchaStates.SOLVED
+        : CaptchaStates.UNSOLVED;
+
       return {
         type: CaptchaTypes.IMAGE_CAPTCHA,
+        provider: 'custom',
+        state,
         imageSelector: this.generateFieldSelector(captchaImage),
         inputSelector: captchaInput ? this.generateFieldSelector(captchaInput) : null,
         imageSrc: captchaImage.src,
+        selector: this.generateFieldSelector(captchaImage),
+        boundingBox: this.getBoundingBox(captchaImage),
         visible: this.isElementVisible(captchaImage)
       };
+    }
+
+    // Check for math CAPTCHA
+    const mathCaptcha = this.detectMathCaptcha(container);
+    if (mathCaptcha) {
+      return mathCaptcha;
     }
 
     // Check for text-based CAPTCHA
@@ -624,11 +737,89 @@ class FormDetector {
       '[class*="captcha"], [id*="captcha"]'
     );
     if (captchaText && captchaText.textContent.match(/captcha|verify|human/i)) {
+      const captchaInput = container.querySelector(
+        'input[name*="captcha" i], input[id*="captcha" i], input[type="text"]'
+      );
+      const state = (captchaInput && captchaInput.value)
+        ? CaptchaStates.SOLVED
+        : CaptchaStates.UNSOLVED;
+
       return {
         type: CaptchaTypes.TEXT_CAPTCHA,
+        provider: 'custom',
+        state,
+        question: captchaText.textContent.trim().substring(0, 200),
+        inputSelector: captchaInput ? this.generateFieldSelector(captchaInput) : null,
         selector: this.generateFieldSelector(captchaText),
+        boundingBox: this.getBoundingBox(captchaText),
         visible: this.isElementVisible(captchaText)
       };
+    }
+
+    return null;
+  }
+
+  /**
+   * Detect math-based CAPTCHA within a container
+   * @param {HTMLElement} container - Container to search in
+   * @returns {Object|null} Math CAPTCHA detection result
+   */
+  detectMathCaptcha(container) {
+    const elements = container.querySelectorAll('[class*="captcha"], [id*="captcha"], label');
+
+    for (const element of elements) {
+      const text = element.textContent || '';
+
+      // Match math CAPTCHA patterns
+      const mathPatterns = [
+        /(\d+)\s*[\+\-\*x]\s*(\d+)\s*=\s*\?/,
+        /what\s+is\s+(\d+)\s*[\+\-\*x]\s*(\d+)/i,
+        /(\d+)\s*[\+\-\*x]\s*(\d+)\s*=\s*$/
+      ];
+
+      for (const pattern of mathPatterns) {
+        if (pattern.test(text)) {
+          const inputField = container.querySelector(
+            'input[type="text"], input[type="number"], input[name*="captcha"]'
+          );
+
+          const state = (inputField && inputField.value)
+            ? CaptchaStates.SOLVED
+            : CaptchaStates.UNSOLVED;
+
+          // Extract math expression
+          const match = text.match(/(\d+)\s*([\+\-\*x])\s*(\d+)/);
+          let expression = null;
+          let expectedAnswer = null;
+
+          if (match) {
+            const num1 = parseInt(match[1], 10);
+            const operator = match[2];
+            const num2 = parseInt(match[3], 10);
+            expression = `${num1} ${operator} ${num2}`;
+
+            switch (operator) {
+              case '+': expectedAnswer = num1 + num2; break;
+              case '-': expectedAnswer = num1 - num2; break;
+              case '*':
+              case 'x': expectedAnswer = num1 * num2; break;
+            }
+          }
+
+          return {
+            type: CaptchaTypes.MATH_CAPTCHA,
+            provider: 'custom',
+            state,
+            question: text.trim().substring(0, 100),
+            expression,
+            expectedAnswer,
+            inputSelector: inputField ? this.generateFieldSelector(inputField) : null,
+            selector: this.generateFieldSelector(element),
+            boundingBox: this.getBoundingBox(element),
+            visible: this.isElementVisible(element)
+          };
+        }
+      }
     }
 
     return null;
@@ -1110,9 +1301,10 @@ if (typeof globalThis !== 'undefined') {
   globalThis.FormDetector = FormDetector;
   globalThis.FormTypes = FormTypes;
   globalThis.CaptchaTypes = CaptchaTypes;
+  globalThis.CaptchaStates = CaptchaStates;
   globalThis.FieldPatterns = FieldPatterns;
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { FormDetector, FormTypes, CaptchaTypes, FieldPatterns };
+  module.exports = { FormDetector, FormTypes, CaptchaTypes, CaptchaStates, FieldPatterns };
 }

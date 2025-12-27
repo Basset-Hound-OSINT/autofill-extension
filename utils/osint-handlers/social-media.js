@@ -92,22 +92,22 @@ const SocialMediaConfig = {
 // Rate Limiting State
 // =============================================================================
 
-let lastRequestTime = 0;
+let socialMediaLastRequestTime = 0;
 
 /**
  * Wait for rate limiting between requests
  * @returns {Promise<void>}
  */
-async function waitForRateLimit() {
+async function waitForSocialMediaRateLimit() {
   const now = Date.now();
-  const elapsed = now - lastRequestTime;
+  const elapsed = now - socialMediaLastRequestTime;
   const waitTime = Math.max(0, SocialMediaConfig.DELAY_BETWEEN_CHECKS - elapsed);
 
   if (waitTime > 0) {
     await new Promise(resolve => setTimeout(resolve, waitTime));
   }
 
-  lastRequestTime = Date.now();
+  socialMediaLastRequestTime = Date.now();
 }
 
 // =============================================================================
@@ -195,7 +195,7 @@ async function fetchWithTimeout(url, options = {}) {
  * @returns {Promise<Object>} - Check result
  */
 async function checkProfileUrl(url) {
-  await waitForRateLimit();
+  await waitForSocialMediaRateLimit();
 
   for (let attempt = 1; attempt <= SocialMediaConfig.MAX_RETRIES; attempt++) {
     try {

@@ -59,7 +59,7 @@ async function lookupDomain(domain, options = {}) {
 
   // Clean and validate domain
   const cleanDomain = cleanDomainInput(domain);
-  if (!isValidDomain(cleanDomain)) {
+  if (!isValidWhoisDomain(cleanDomain)) {
     throw new Error(`Invalid domain format: ${domain}`);
   }
 
@@ -333,7 +333,7 @@ async function lookupIP(ip, options = {}) {
   }
 
   const cleanIP = ip.trim();
-  if (!isValidIP(cleanIP)) {
+  if (!isValidWhoisIP(cleanIP)) {
     throw new Error(`Invalid IP address format: ${ip}`);
   }
 
@@ -1137,22 +1137,22 @@ function cleanDomainInput(domain) {
 }
 
 /**
- * Validate domain format
+ * Validate domain format for WHOIS lookups
  * @param {string} domain - Domain to validate
  * @returns {boolean} - True if valid
  */
-function isValidDomain(domain) {
+function isValidWhoisDomain(domain) {
   // Basic domain validation regex
   const domainRegex = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i;
   return domainRegex.test(domain);
 }
 
 /**
- * Validate IP address format (IPv4 or IPv6)
+ * Validate IP address format (IPv4 or IPv6) for WHOIS lookups
  * @param {string} ip - IP address to validate
  * @returns {boolean} - True if valid
  */
-function isValidIP(ip) {
+function isValidWhoisIP(ip) {
   // IPv4 regex
   const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
 
@@ -1215,8 +1215,8 @@ if (typeof globalThis !== 'undefined') {
     formatWhoisResults,
     clearCache,
     getCacheStats,
-    isValidDomain,
-    isValidIP
+    isValidWhoisDomain,
+    isValidWhoisIP
   };
 }
 
@@ -1231,7 +1231,7 @@ if (typeof module !== 'undefined' && module.exports) {
     formatWhoisResults,
     clearCache,
     getCacheStats,
-    isValidDomain,
-    isValidIP
+    isValidWhoisDomain,
+    isValidWhoisIP
   };
 }

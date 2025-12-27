@@ -295,6 +295,19 @@ async function handleMessage(request) {
     case 'get_rate_limit_stats':
       return handleGetRateLimitStats(request.actionType);
 
+    // Fingerprint randomization commands
+    case 'enable_fingerprint_protection':
+      return handleEnableFingerprintProtection(request.options);
+
+    case 'disable_fingerprint_protection':
+      return handleDisableFingerprintProtection();
+
+    case 'get_fingerprint_status':
+      return handleGetFingerprintStatus();
+
+    case 'regenerate_fingerprint':
+      return handleRegenerateFingerprintProfiles();
+
     default:
       throw new Error(`Unknown action: ${request.action}`);
   }
@@ -7761,6 +7774,85 @@ async function applyRateLimit(actionType) {
     return await contentRateLimiter.wait(actionType);
   }
   return { waited: false, reason: 'not_initialized' };
+}
+
+// =============================================================================
+// Fingerprint Randomization Handlers
+// =============================================================================
+
+/**
+ * Enable fingerprint protection
+ * @param {Object} options - Protection options
+ * @returns {Object} Protection status
+ */
+function handleEnableFingerprintProtection(options = {}) {
+  try {
+    if (typeof window.FingerprintRandomizer !== 'undefined') {
+      const result = window.FingerprintRandomizer.applyProtection(options);
+      contentLogger.info('Fingerprint protection enabled', result);
+      return result;
+    } else {
+      throw new Error('FingerprintRandomizer not loaded');
+    }
+  } catch (error) {
+    contentLogger.error('Failed to enable fingerprint protection', { error: error.message });
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Disable fingerprint protection
+ * @returns {Object} Protection status
+ */
+function handleDisableFingerprintProtection() {
+  try {
+    if (typeof window.FingerprintRandomizer !== 'undefined') {
+      const result = window.FingerprintRandomizer.disable();
+      contentLogger.info('Fingerprint protection disabled', result);
+      return result;
+    } else {
+      return { success: true, enabled: false, note: 'FingerprintRandomizer not loaded' };
+    }
+  } catch (error) {
+    contentLogger.error('Failed to disable fingerprint protection', { error: error.message });
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get fingerprint protection status
+ * @returns {Object} Current status
+ */
+function handleGetFingerprintStatus() {
+  try {
+    if (typeof window.FingerprintRandomizer !== 'undefined') {
+      return window.FingerprintRandomizer.getStatus();
+    } else {
+      return { enabled: false, note: 'FingerprintRandomizer not loaded' };
+    }
+  } catch (error) {
+    contentLogger.error('Failed to get fingerprint status', { error: error.message });
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Regenerate fingerprint profiles
+ * @returns {Object} New profiles
+ */
+function handleRegenerateFingerprintProfiles() {
+  try {
+    if (typeof window.FingerprintRandomizer !== 'undefined') {
+      const result = window.FingerprintRandomizer.regenerate();
+      contentLogger.info('Fingerprint profiles regenerated', result);
+      return result;
+    } else {
+      throw new Error('FingerprintRandomizer not loaded');
+    }
+  } catch (error) {
+    contentLogger.error('Failed to regenerate fingerprint profiles', { error: error.message });
+    return { success: false, error: error.message };
+  }
 }
 
 // =============================================================================

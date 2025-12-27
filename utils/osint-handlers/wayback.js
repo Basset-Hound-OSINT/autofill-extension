@@ -41,22 +41,22 @@ const WaybackConfig = {
 // Rate Limiting State
 // =============================================================================
 
-let lastRequestTime = 0;
+let waybackLastRequestTime = 0;
 
 /**
  * Wait for rate limiting
  * @returns {Promise<void>}
  */
-async function waitForRateLimit() {
+async function waitForWaybackRateLimit() {
   const now = Date.now();
-  const elapsed = now - lastRequestTime;
+  const elapsed = now - waybackLastRequestTime;
   const waitTime = Math.max(0, WaybackConfig.MIN_REQUEST_INTERVAL - elapsed);
 
   if (waitTime > 0) {
     await new Promise(resolve => setTimeout(resolve, waitTime));
   }
 
-  lastRequestTime = Date.now();
+  waybackLastRequestTime = Date.now();
 }
 
 // =============================================================================
@@ -150,7 +150,7 @@ async function fetchWithRetry(url, options = {}) {
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      await waitForRateLimit();
+      await waitForWaybackRateLimit();
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);

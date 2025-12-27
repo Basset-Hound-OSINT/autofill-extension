@@ -39,33 +39,38 @@ const FormTypes = {
 
 // Note: For comprehensive CAPTCHA detection, use the CaptchaDetector class
 // from captcha-detector.js. These types are kept for backward compatibility.
+// Only define if not already defined by captcha-detector.js
 
-const CaptchaTypes = {
-  RECAPTCHA_V2: 'recaptcha_v2',
-  RECAPTCHA_V2_CHECKBOX: 'recaptcha_v2_checkbox',
-  RECAPTCHA_V2_INVISIBLE: 'recaptcha_v2_invisible',
-  RECAPTCHA_V3: 'recaptcha_v3',
-  HCAPTCHA: 'hcaptcha',
-  CLOUDFLARE_TURNSTILE: 'cloudflare_turnstile',
-  FUNCAPTCHA: 'funcaptcha',
-  IMAGE_CAPTCHA: 'image_captcha',
-  TEXT_CAPTCHA: 'text_captcha',
-  MATH_CAPTCHA: 'math_captcha',
-  AUDIO_CAPTCHA: 'audio_captcha',
-  SLIDER_CAPTCHA: 'slider_captcha',
-  GEETEST: 'geetest',
-  UNKNOWN: 'unknown'
-};
+if (typeof CaptchaTypes === 'undefined') {
+  var CaptchaTypes = {
+    RECAPTCHA_V2: 'recaptcha_v2',
+    RECAPTCHA_V2_CHECKBOX: 'recaptcha_v2_checkbox',
+    RECAPTCHA_V2_INVISIBLE: 'recaptcha_v2_invisible',
+    RECAPTCHA_V3: 'recaptcha_v3',
+    HCAPTCHA: 'hcaptcha',
+    CLOUDFLARE_TURNSTILE: 'cloudflare_turnstile',
+    FUNCAPTCHA: 'funcaptcha',
+    IMAGE_CAPTCHA: 'image_captcha',
+    TEXT_CAPTCHA: 'text_captcha',
+    MATH_CAPTCHA: 'math_captcha',
+    AUDIO_CAPTCHA: 'audio_captcha',
+    SLIDER_CAPTCHA: 'slider_captcha',
+    GEETEST: 'geetest',
+    UNKNOWN: 'unknown'
+  };
+}
 
-const CaptchaStates = {
-  UNSOLVED: 'unsolved',
-  SOLVED: 'solved',
-  EXPIRED: 'expired',
-  CHALLENGE_VISIBLE: 'challenge_visible',
-  LOADING: 'loading',
-  INVISIBLE: 'invisible',
-  UNKNOWN: 'unknown'
-};
+if (typeof CaptchaStates === 'undefined') {
+  var CaptchaStates = {
+    UNSOLVED: 'unsolved',
+    SOLVED: 'solved',
+    EXPIRED: 'expired',
+    CHALLENGE_VISIBLE: 'challenge_visible',
+    LOADING: 'loading',
+    INVISIBLE: 'invisible',
+    UNKNOWN: 'unknown'
+  };
+}
 
 // =============================================================================
 // Field Patterns for Detection

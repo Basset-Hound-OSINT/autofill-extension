@@ -243,11 +243,11 @@ async function makeHunterRequest(endpoint, options = {}) {
 // =============================================================================
 
 /**
- * Validate domain format
+ * Validate domain format for Hunter.io lookups
  * @param {string} domain - Domain to validate
  * @returns {boolean} - True if valid domain
  */
-function isValidDomain(domain) {
+function isValidHunterDomain(domain) {
   const domainPattern = /^(?=.{1,253}$)(?:(?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,63}$/;
   return domainPattern.test(domain);
 }
@@ -294,7 +294,7 @@ async function searchDomain(domain, apiKey, options = {}) {
   // Clean domain (remove protocol if present)
   const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/.*$/, '').toLowerCase();
 
-  if (!isValidDomain(cleanDomain)) {
+  if (!isValidHunterDomain(cleanDomain)) {
     return {
       success: false,
       error: 'Invalid domain format',
@@ -407,7 +407,7 @@ async function findEmail(domain, firstName, lastName, apiKey) {
   // Clean domain
   const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/.*$/, '').toLowerCase();
 
-  if (!isValidDomain(cleanDomain)) {
+  if (!isValidHunterDomain(cleanDomain)) {
     return {
       success: false,
       error: 'Invalid domain format',
@@ -584,7 +584,7 @@ async function getEmailCount(domain, apiKey) {
   // Clean domain
   const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/.*$/, '').toLowerCase();
 
-  if (!isValidDomain(cleanDomain)) {
+  if (!isValidHunterDomain(cleanDomain)) {
     return {
       success: false,
       error: 'Invalid domain format',

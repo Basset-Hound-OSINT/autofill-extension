@@ -8,31 +8,103 @@
  * - Reconnection logic with exponential backoff
  */
 
-// Import utility scripts
-importScripts('utils/logger.js');
-importScripts('utils/network-monitor.js');
-importScripts('utils/request-interceptor.js');
-importScripts('utils/user-agent-rotator.js');
-importScripts('utils/rate-limiter.js');
-importScripts('utils/osint-handlers/shodan.js');
-importScripts('utils/osint-handlers/haveibeenpwned.js');
-importScripts('utils/osint-handlers/whois.js');
-importScripts('utils/osint-handlers/wayback.js');
-importScripts('utils/osint-handlers/hunter.js');
-importScripts('utils/osint-handlers/social-media.js');
-importScripts('utils/security/input-validator.js');
-importScripts('utils/security/websocket-auth.js');
-importScripts('utils/security/privacy-controls.js');
-importScripts('utils/security/audit-logger.js');
-importScripts('utils/knowledge-base/tool-parser.js');
-// Phase 5.3 Data Pipeline
-importScripts('utils/data-pipeline/normalizer.js');
-importScripts('utils/data-pipeline/entity-manager.js');
-importScripts('utils/data-pipeline/basset-hound-sync.js');
-// Phase 6 palletAI Integration
-importScripts('utils/agent/callbacks.js');
-importScripts('utils/agent/message-schema.js');
-importScripts('utils/agent/streaming.js');
+// Debug: Track service worker initialization
+console.log('[Basset Hound] Service worker starting...');
+
+// Import utility scripts with error tracking
+try {
+  console.log('[Basset Hound] Importing logger.js...');
+  importScripts('utils/logger.js');
+  console.log('[Basset Hound] logger.js loaded successfully');
+} catch (e) {
+  console.error('[Basset Hound] Failed to load logger.js:', e.message);
+}
+
+try {
+  console.log('[Basset Hound] Importing network-monitor.js...');
+  importScripts('utils/network-monitor.js');
+  console.log('[Basset Hound] network-monitor.js loaded successfully');
+} catch (e) {
+  console.error('[Basset Hound] Failed to load network-monitor.js:', e.message);
+}
+
+try {
+  console.log('[Basset Hound] Importing request-interceptor.js...');
+  importScripts('utils/request-interceptor.js');
+  console.log('[Basset Hound] request-interceptor.js loaded successfully');
+} catch (e) {
+  console.error('[Basset Hound] Failed to load request-interceptor.js:', e.message);
+}
+
+try {
+  console.log('[Basset Hound] Importing user-agent-rotator.js...');
+  importScripts('utils/user-agent-rotator.js');
+  console.log('[Basset Hound] user-agent-rotator.js loaded successfully');
+} catch (e) {
+  console.error('[Basset Hound] Failed to load user-agent-rotator.js:', e.message);
+}
+
+try {
+  console.log('[Basset Hound] Importing rate-limiter.js...');
+  importScripts('utils/rate-limiter.js');
+  console.log('[Basset Hound] rate-limiter.js loaded successfully');
+} catch (e) {
+  console.error('[Basset Hound] Failed to load rate-limiter.js:', e.message);
+}
+
+try {
+  console.log('[Basset Hound] Importing OSINT handlers...');
+  importScripts('utils/osint-handlers/shodan.js');
+  importScripts('utils/osint-handlers/haveibeenpwned.js');
+  importScripts('utils/osint-handlers/whois.js');
+  importScripts('utils/osint-handlers/wayback.js');
+  importScripts('utils/osint-handlers/hunter.js');
+  importScripts('utils/osint-handlers/social-media.js');
+  console.log('[Basset Hound] OSINT handlers loaded successfully');
+} catch (e) {
+  console.error('[Basset Hound] Failed to load OSINT handlers:', e.message);
+}
+
+try {
+  console.log('[Basset Hound] Importing security modules...');
+  importScripts('utils/security/input-validator.js');
+  importScripts('utils/security/websocket-auth.js');
+  importScripts('utils/security/privacy-controls.js');
+  importScripts('utils/security/audit-logger.js');
+  console.log('[Basset Hound] Security modules loaded successfully');
+} catch (e) {
+  console.error('[Basset Hound] Failed to load security modules:', e.message);
+}
+
+try {
+  console.log('[Basset Hound] Importing knowledge-base...');
+  importScripts('utils/knowledge-base/tool-parser.js');
+  console.log('[Basset Hound] Knowledge-base loaded successfully');
+} catch (e) {
+  console.error('[Basset Hound] Failed to load knowledge-base:', e.message);
+}
+
+try {
+  console.log('[Basset Hound] Importing data-pipeline...');
+  importScripts('utils/data-pipeline/normalizer.js');
+  importScripts('utils/data-pipeline/entity-manager.js');
+  importScripts('utils/data-pipeline/basset-hound-sync.js');
+  console.log('[Basset Hound] Data-pipeline loaded successfully');
+} catch (e) {
+  console.error('[Basset Hound] Failed to load data-pipeline:', e.message);
+}
+
+try {
+  console.log('[Basset Hound] Importing agent modules...');
+  importScripts('utils/agent/callbacks.js');
+  importScripts('utils/agent/message-schema.js');
+  importScripts('utils/agent/streaming.js');
+  console.log('[Basset Hound] Agent modules loaded successfully');
+} catch (e) {
+  console.error('[Basset Hound] Failed to load agent modules:', e.message);
+}
+
+console.log('[Basset Hound] All imports completed, initializing...');
 
 // Initialize logger for background script
 const logger = new Logger({
@@ -693,7 +765,12 @@ const commandHandlers = {
   negotiate_version: handleNegotiateVersion,
   // Phase 6 palletAI Integration - Streaming
   start_stream: handleStartStream,
-  get_stream_chunk: handleGetStreamChunk
+  get_stream_chunk: handleGetStreamChunk,
+  // Phase 4.6 Bot Detection Evasion - Fingerprint Randomization
+  enable_fingerprint_protection: handleEnableFingerprintProtection,
+  disable_fingerprint_protection: handleDisableFingerprintProtection,
+  get_fingerprint_status: handleGetFingerprintStatus,
+  regenerate_fingerprint: handleRegenerateFingerprint
 };
 
 // =============================================================================
@@ -7595,6 +7672,122 @@ async function handleClearOfflineQueue(params = {}) {
     };
   } catch (error) {
     throw new Error(`Failed to clear offline queue: ${error.message}`);
+  }
+}
+
+// =============================================================================
+// Phase 4.6 Bot Detection Evasion - Fingerprint Randomization Handlers
+// =============================================================================
+
+/**
+ * Enable fingerprint protection
+ * @param {Object} params - Protection options
+ * @returns {Object} Protection status
+ */
+async function handleEnableFingerprintProtection(params = {}) {
+  const { options = {} } = params;
+
+  logger.info('Enabling fingerprint protection', { options });
+
+  try {
+    // Send message to content script to apply protection
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tabs.length === 0) {
+      throw new Error('No active tab found');
+    }
+
+    const response = await chrome.tabs.sendMessage(tabs[0].id, {
+      action: 'enable_fingerprint_protection',
+      options
+    });
+
+    // Log to audit
+    if (typeof auditLogger !== 'undefined') {
+      auditLogger.log('fingerprint_protection_enabled', { options }, 'info');
+    }
+
+    return response || { success: true, enabled: true };
+  } catch (error) {
+    throw new Error(`Failed to enable fingerprint protection: ${error.message}`);
+  }
+}
+
+/**
+ * Disable fingerprint protection
+ * @returns {Object} Protection status
+ */
+async function handleDisableFingerprintProtection() {
+  logger.info('Disabling fingerprint protection');
+
+  try {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tabs.length === 0) {
+      throw new Error('No active tab found');
+    }
+
+    const response = await chrome.tabs.sendMessage(tabs[0].id, {
+      action: 'disable_fingerprint_protection'
+    });
+
+    // Log to audit
+    if (typeof auditLogger !== 'undefined') {
+      auditLogger.log('fingerprint_protection_disabled', {}, 'info');
+    }
+
+    return response || { success: true, enabled: false };
+  } catch (error) {
+    throw new Error(`Failed to disable fingerprint protection: ${error.message}`);
+  }
+}
+
+/**
+ * Get fingerprint protection status
+ * @returns {Object} Current status
+ */
+async function handleGetFingerprintStatus() {
+  logger.debug('Getting fingerprint status');
+
+  try {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tabs.length === 0) {
+      throw new Error('No active tab found');
+    }
+
+    const response = await chrome.tabs.sendMessage(tabs[0].id, {
+      action: 'get_fingerprint_status'
+    });
+
+    return response || { enabled: false, protections: {} };
+  } catch (error) {
+    throw new Error(`Failed to get fingerprint status: ${error.message}`);
+  }
+}
+
+/**
+ * Regenerate fingerprint profiles
+ * @returns {Object} New profiles
+ */
+async function handleRegenerateFingerprint() {
+  logger.info('Regenerating fingerprint profiles');
+
+  try {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tabs.length === 0) {
+      throw new Error('No active tab found');
+    }
+
+    const response = await chrome.tabs.sendMessage(tabs[0].id, {
+      action: 'regenerate_fingerprint'
+    });
+
+    // Log to audit
+    if (typeof auditLogger !== 'undefined') {
+      auditLogger.log('fingerprint_regenerated', {}, 'info');
+    }
+
+    return response || { success: true };
+  } catch (error) {
+    throw new Error(`Failed to regenerate fingerprint: ${error.message}`);
   }
 }
 

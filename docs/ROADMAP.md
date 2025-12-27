@@ -65,6 +65,7 @@ This roadmap tracks the development of the Basset Hound Browser Automation Exten
 | `utils/agent/streaming.js` | Streaming responses for large data |
 | `utils/security/audit-logger.js` | Audit logging with privacy-aware redaction |
 | `utils/data-pipeline/basset-hound-sync.js` | Backend sync with offline queue |
+| `utils/fingerprint-randomizer.js` | Browser fingerprint randomization |
 
 ---
 
@@ -236,7 +237,7 @@ This roadmap tracks the development of the Basset Hound Browser Automation Exten
 | Realistic typing | Done | Random delays and variance |
 | Mouse movements | Done | Bezier curve paths |
 | Scroll behavior | Done | Acceleration/deceleration |
-| Browser fingerprint | Planned | Randomize attributes |
+| Browser fingerprint | Done | Randomize attributes via `enable_fingerprint_protection`, `disable_fingerprint_protection`, `get_fingerprint_status`, `regenerate_fingerprint` (Canvas, WebGL, Audio, Navigator, Screen) |
 | User-agent rotation | Done | Rotate user agents via `set_user_agent`, `rotate_user_agent`, `get_user_agents`, `reset_user_agent` (25 realistic UA strings for Chrome, Firefox, Safari, Edge on Windows, Mac, Linux) |
 | Rate limiting | Done | Configurable delays via `set_rate_limit`, `get_rate_limit`, `pause_actions`, `resume_actions` with presets for click, typing, navigation, scroll |
 
@@ -466,6 +467,7 @@ Benefits:
 | 2.11.0 | 2024-12-27 | Added Phase 6 Agent: message schema, version negotiation, streaming responses, CAPTCHA help, approval workflows, breakpoints |
 | 2.12.0 | 2024-12-27 | Added Phase 7 Security: WSS enforcement, WebSocket auth with encryption, privacy controls, local-only mode |
 | 2.13.0 | 2024-12-27 | Added audit logging with privacy-aware redaction, basset-hound backend sync with offline queue and conflict resolution |
+| 2.14.0 | 2024-12-27 | Added browser fingerprint randomization (Canvas, WebGL, Audio, Navigator, Screen) for authorized security testing |
 
 ---
 

@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multi-Step Form - Test Page</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    body {
+      max-width: 600px;
+      margin: 30px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .progress-container {
+      display: flex;
+      justify-content: space-between;
+      margin: 30px 0;
+      position: relative;
+    }
+    .progress-container::before {
+      content: '';
+      position: absolute;
+      top: 15px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #e0e0e0;
+    }
+    .progress-step {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+    }
+    .step-circle {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: #e0e0e0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 14px;
+      color: #666;
+      transition: all 0.3s;
+    }
+    .progress-step.active .step-circle,
+    .progress-step.completed .step-circle {
+      background: #4a90d9;
+      color: white;
+    }
+    .progress-step.completed .step-circle {
+      background: #4caf50;
+    }
+    .step-label {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #888;
+    }
+    .progress-step.active .step-label {
+      color: #4a90d9;
+      font-weight: 600;
+    }
+    .step-content {
+      display: none;
+    }
+    .step-content.active {
+      display: block;
+      animation: fadeIn 0.3s ease-in;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #555;
+      font-weight: 500;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #4a90d9;
+    }
+    .radio-group, .checkbox-group {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .radio-item, .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .radio-item input, .checkbox-item input {
+      width: auto;
+    }
+    .button-group {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 30px;
+    }
+    button {
+      padding: 12px 30px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    button.primary {
+      background: #4a90d9;
+      color: white;
+    }
+    button.primary:hover {
+      background: #357abd;
+    }
+    button.secondary {
+      background: #e0e0e0;
+      color: #333;
+    }
+    button.secondary:hover {
+      background: #ccc;
+    }
+    button.success {
+      background: #4caf50;
+      color: white;
+    }
+    button.success:hover {
+      background: #388e3c;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .step-title {
+      color: #333;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .summary-label {
+      color: #666;
+    }
+    .summary-value {
+      font-weight: 500;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 20px;
+      background: #e8f5e9;
+      border: 1px solid #c8e6c9;
+      border-radius: 4px;
+      display: none;
+    }
+    .result.show {
+      display: block;
+    }
+    .result h3 {
+      margin-top: 0;
+      color: #2e7d32;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Multi-Step Registration</h1>
+
+    <!-- Progress Indicator -->
+    <div class="progress-container">
+      <div class="progress-step active" data-step="1">
+        <div class="step-circle">1</div>
+        <div class="step-label">Personal</div>
+      </div>
+      <div class="progress-step" data-step="2">
+        <div class="step-circle">2</div>
+        <div class="step-label">Contact</div>
+      </div>
+      <div class="progress-step" data-step="3">
+        <div class="step-circle">3</div>
+        <div class="step-label">Preferences</div>
+      </div>
+      <div class="progress-step" data-step="4">
+        <div class="step-circle">4</div>
+        <div class="step-label">Review</div>
+      </div>
+    </div>
+
+    <form id="multiStepForm">
+      <!-- Step 1: Personal Information -->
+      <div class="step-content active" data-step="1">
+        <h2 class="step-title">Personal Information</h2>
+
+        <div class="form-group">
+          <label for="firstName">First Name</label>
+          <input type="text" id="firstName" name="firstName" required>
+        </div>
+
+        <div class="form-group">
+          <label for="lastName">Last Name</label>
+          <input type="text" id="lastName" name="lastName" required>
+        </div>
+
+        <div class="form-group">
+          <label for="dob">Date of Birth</label>
+          <input type="date" id="dob" name="dob" required>
+        </div>
+
+        <div class="form-group">
+          <label>Gender</label>
+          <div class="radio-group">
+            <div class="radio-item">
+              <input type="radio" id="genderMale" name="gender" value="male" required>
+              <label for="genderMale">Male</label>
+            </div>
+            <div class="radio-item">
+              <input type="radio" id="genderFemale" name="gender" value="female">
+              <label for="genderFemale">Female</label>
+            </div>
+            <div class="radio-item">
+              <input type="radio" id="genderOther" name="gender" value="other">
+              <label for="genderOther">Other</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="button-group">
+          <div></div>
+          <button type="button" class="primary next-btn" onclick="nextStep()">Continue</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Contact Information -->
+      <div class="step-content" data-step="2">
+        <h2 class="step-title">Contact Information</h2>
+
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" name="email" required>
+        </div>
+
+        <div class="form-group">
+          <label for="phone">Phone Number</label>
+          <input type="tel" id="phone" name="phone" placeholder="+1 (555) 123-4567">
+        </div>
+
+        <div class="form-group">
+          <label for="address">Street Address</label>
+          <input type="text" id="address" name="address">
+        </div>
+
+        <div class="form-group">
+          <label for="city">City</label>
+          <input type="text" id="city" name="city">
+        </div>
+
+        <div class="form-group">
+          <label for="country">Country</label>
+          <select id="country" name="country" required>
+            <option value="">Select a country...</option>
+            <option value="US">United States</option>
+            <option value="UK">United Kingdom</option>
+            <option value="CA">Canada</option>
+            <option value="AU">Australia</option>
+            <option value="DE">Germany</option>
+          </select>
+        </div>
+
+        <div class="button-group">
+          <button type="button" class="secondary prev-btn" onclick="prevStep()">Back</button>
+          <button type="button" class="primary next-btn" onclick="nextStep()">Continue</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Preferences -->
+      <div class="step-content" data-step="3">
+        <h2 class="step-title">Preferences</h2>
+
+        <div class="form-group">
+          <label for="accountType">Account Type</label>
+          <select id="accountType" name="accountType" required>
+            <option value="">Select account type...</option>
+            <option value="personal">Personal</option>
+            <option value="business">Business</option>
+            <option value="enterprise">Enterprise</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Notification Preferences</label>
+          <div class="checkbox-group">
+            <div class="checkbox-item">
+              <input type="checkbox" id="notifyEmail" name="notifications" value="email" checked>
+              <label for="notifyEmail">Email</label>
+            </div>
+            <div class="checkbox-item">
+              <input type="checkbox" id="notifySms" name="notifications" value="sms">
+              <label for="notifySms">SMS</label>
+            </div>
+            <div class="checkbox-item">
+              <input type="checkbox" id="notifyPush" name="notifications" value="push">
+              <label for="notifyPush">Push</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="bio">Bio / About</label>
+          <textarea id="bio" name="bio" rows="4" placeholder="Tell us about yourself..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <div class="checkbox-item">
+            <input type="checkbox" id="terms" name="terms" required>
+            <label for="terms">I agree to the Terms and Conditions</label>
+          </div>
+        </div>
+
+        <div class="button-group">
+          <button type="button" class="secondary prev-btn" onclick="prevStep()">Back</button>
+          <button type="button" class="primary next-btn" onclick="nextStep()">Review</button>
+        </div>
+      </div>
+
+      <!-- Step 4: Review -->
+      <div class="step-content" data-step="4">
+        <h2 class="step-title">Review Your Information</h2>
+
+        <div id="summaryContent"></div>
+
+        <div class="button-group">
+          <button type="button" class="secondary prev-btn" onclick="prevStep()">Back</button>
+          <button type="submit" class="success submit-btn" id="submitBtn">Submit Registration</button>
+        </div>
+      </div>
+    </form>
+
+    <div id="result" class="result"></div>
+  </div>
+
+  <script>
+    let currentStep = 1;
+    const totalSteps = 4;
+
+    function updateProgress() {
+      document.querySelectorAll('.progress-step').forEach((step, index) => {
+        const stepNum = index + 1;
+        step.classList.remove('active', 'completed');
+
+        if (stepNum < currentStep) {
+          step.classList.add('completed');
+        } else if (stepNum === currentStep) {
+          step.classList.add('active');
+        }
+      });
+
+      document.querySelectorAll('.step-content').forEach(content => {
+        content.classList.remove('active');
+        if (parseInt(content.dataset.step) === currentStep) {
+          content.classList.add('active');
+        }
+      });
+
+      console.log(`Current step: ${currentStep}`);
+    }
+
+    function nextStep() {
+      // Validate current step
+      const currentContent = document.querySelector(`.step-content[data-step="${currentStep}"]`);
+      const inputs = currentContent.querySelectorAll('input[required], select[required]');
+
+      let isValid = true;
+      inputs.forEach(input => {
+        if (!input.checkValidity()) {
+          input.reportValidity();
+          isValid = false;
+        }
+      });
+
+      if (!isValid) return;
+
+      if (currentStep < totalSteps) {
+        currentStep++;
+        updateProgress();
+
+        // Update summary on step 4
+        if (currentStep === 4) {
+          updateSummary();
+        }
+      }
+    }
+
+    function prevStep() {
+      if (currentStep > 1) {
+        currentStep--;
+        updateProgress();
+      }
+    }
+
+    function goToStep(step) {
+      if (step >= 1 && step <= totalSteps) {
+        currentStep = step;
+        updateProgress();
+      }
+    }
+
+    function updateSummary() {
+      const form = document.getElementById('multiStepForm');
+      const formData = new FormData(form);
+
+      const labels = {
+        firstName: 'First Name',
+        lastName: 'Last Name',
+        dob: 'Date of Birth',
+        gender: 'Gender',
+        email: 'Email',
+        phone: 'Phone',
+        address: 'Address',
+        city: 'City',
+        country: 'Country',
+        accountType: 'Account Type',
+        bio: 'Bio'
+      };
+
+      let html = '';
+
+      formData.forEach((value, key) => {
+        if (key !== 'notifications' && key !== 'terms' && value) {
+          html += `
+            <div class="summary-row">
+              <span class="summary-label">${labels[key] || key}</span>
+              <span class="summary-value">${value}</span>
+            </div>
+          `;
+        }
+      });
+
+      // Add notifications
+      const notifications = formData.getAll('notifications');
+      if (notifications.length > 0) {
+        html += `
+          <div class="summary-row">
+            <span class="summary-label">Notifications</span>
+            <span class="summary-value">${notifications.join(', ')}</span>
+          </div>
+        `;
+      }
+
+      document.getElementById('summaryContent').innerHTML = html;
+    }
+
+    // Form submission
+    document.getElementById('multiStepForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const formData = new FormData(this);
+      const data = {};
+
+      formData.forEach((value, key) => {
+        if (data[key]) {
+          if (!Array.isArray(data[key])) {
+            data[key] = [data[key]];
+          }
+          data[key].push(value);
+        } else {
+          data[key] = value;
+        }
+      });
+
+      const result = document.getElementById('result');
+      result.innerHTML = `
+        <h3>Registration Complete!</h3>
+        <p>Thank you for registering. Your information has been submitted.</p>
+        <pre style="background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto;">${JSON.stringify(data, null, 2)}</pre>
+      `;
+      result.classList.add('show');
+
+      console.log('Form submitted:', data);
+    });
+
+    // Log helpful info
+    console.log('Multi-step form loaded');
+    console.log('Current step:', currentStep);
+    console.log('Use nextStep() and prevStep() to navigate');
+    console.log('Buttons with .next-btn and .prev-btn classes');
+  </script>
+</body>
+</html>

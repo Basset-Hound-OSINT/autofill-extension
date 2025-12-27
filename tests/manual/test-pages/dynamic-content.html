@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dynamic Content - Test Page</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    body {
+      max-width: 600px;
+      margin: 30px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    h2 {
+      color: #555;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+    button {
+      padding: 12px 20px;
+      background: #4a90d9;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      margin: 5px;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #357abd;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .content-area {
+      margin-top: 20px;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 4px;
+      min-height: 100px;
+    }
+    .loading {
+      text-align: center;
+      color: #888;
+      padding: 40px;
+    }
+    .loading::after {
+      content: '...';
+      animation: dots 1.5s steps(5, end) infinite;
+    }
+    @keyframes dots {
+      0%, 20% { content: '.'; }
+      40% { content: '..'; }
+      60%, 100% { content: '...'; }
+    }
+    .loaded-content {
+      animation: fadeIn 0.3s ease-in;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .status {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .status.success {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+    .status.info {
+      background: #e3f2fd;
+      color: #1565c0;
+    }
+    #dynamicElements div {
+      padding: 10px;
+      margin: 5px 0;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal-overlay.show {
+      display: flex;
+    }
+    .modal {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      max-width: 400px;
+      width: 90%;
+    }
+    .modal h3 {
+      margin-top: 0;
+    }
+    .modal-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .modal-buttons button.secondary {
+      background: #e0e0e0;
+      color: #333;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background: #f5f5f5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Dynamic Content Test Page</h1>
+    <p>Use this page to test waiting for dynamically loaded content.</p>
+  </div>
+
+  <div class="container">
+    <h2>1. Delayed Content Loading</h2>
+    <button id="loadContent" onclick="loadDelayedContent()">Load Content (2s delay)</button>
+    <button id="loadFast" onclick="loadFastContent()">Load Content (instant)</button>
+    <div id="contentArea" class="content-area">
+      <em>Click a button to load content...</em>
+    </div>
+  </div>
+
+  <div class="container">
+    <h2>2. Dynamic Element Creation</h2>
+    <button onclick="addElement()">Add Element</button>
+    <button onclick="removeElement()">Remove Element</button>
+    <button onclick="clearElements()">Clear All</button>
+    <div id="dynamicElements" class="content-area">
+      <em>Elements will appear here...</em>
+    </div>
+  </div>
+
+  <div class="container">
+    <h2>3. Modal Dialog</h2>
+    <button id="openModal" onclick="openModal()">Open Modal</button>
+    <div id="modalStatus" class="status info" style="display: none;"></div>
+  </div>
+
+  <div class="container">
+    <h2>4. AJAX Data Loading</h2>
+    <button id="loadTable" onclick="loadTableData()">Load Table Data</button>
+    <div id="tableContainer" class="content-area">
+      <em>Click to load data...</em>
+    </div>
+  </div>
+
+  <div class="container">
+    <h2>5. Infinite Scroll Simulation</h2>
+    <div id="infiniteScroll" style="max-height: 200px; overflow-y: auto;" onscroll="handleScroll()">
+      <div id="scrollContent"></div>
+      <div id="scrollLoader" class="loading" style="display: none;">Loading more</div>
+    </div>
+    <button onclick="initInfiniteScroll()">Initialize Scroll Content</button>
+  </div>
+
+  <!-- Modal -->
+  <div id="modalOverlay" class="modal-overlay">
+    <div class="modal">
+      <h3>Confirm Action</h3>
+      <p>This is a dynamically shown modal dialog. Test clicking the buttons.</p>
+      <div class="modal-buttons">
+        <button class="secondary" onclick="closeModal('cancel')">Cancel</button>
+        <button id="modalConfirm" onclick="closeModal('confirm')">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let elementCounter = 0;
+    let scrollPage = 0;
+
+    function loadDelayedContent() {
+      const area = document.getElementById('contentArea');
+      area.innerHTML = '<div class="loading">Loading content</div>';
+
+      setTimeout(() => {
+        area.innerHTML = `
+          <div class="loaded-content">
+            <div class="status success">Content loaded successfully!</div>
+            <p class="dynamic-content">This content was loaded after a 2 second delay.</p>
+            <p>Timestamp: ${new Date().toISOString()}</p>
+          </div>
+        `;
+        console.log('Delayed content loaded');
+      }, 2000);
+    }
+
+    function loadFastContent() {
+      const area = document.getElementById('contentArea');
+      area.innerHTML = `
+        <div class="loaded-content">
+          <div class="status success">Content loaded instantly!</div>
+          <p class="instant-content">This content was loaded immediately.</p>
+          <p>Timestamp: ${new Date().toISOString()}</p>
+        </div>
+      `;
+      console.log('Instant content loaded');
+    }
+
+    function addElement() {
+      const container = document.getElementById('dynamicElements');
+      if (container.querySelector('em')) {
+        container.innerHTML = '';
+      }
+
+      elementCounter++;
+      const el = document.createElement('div');
+      el.id = `dynamic-element-${elementCounter}`;
+      el.className = 'dynamic-item';
+      el.setAttribute('data-testid', `item-${elementCounter}`);
+      el.innerHTML = `
+        <strong>Element #${elementCounter}</strong>
+        <span style="float:right; color:#888;">${new Date().toLocaleTimeString()}</span>
+      `;
+
+      container.appendChild(el);
+      console.log(`Added element: dynamic-element-${elementCounter}`);
+    }
+
+    function removeElement() {
+      const container = document.getElementById('dynamicElements');
+      const lastElement = container.lastElementChild;
+      if (lastElement && !lastElement.querySelector('em')) {
+        container.removeChild(lastElement);
+        console.log('Removed last element');
+      }
+    }
+
+    function clearElements() {
+      const container = document.getElementById('dynamicElements');
+      container.innerHTML = '<em>Elements will appear here...</em>';
+      elementCounter = 0;
+      console.log('Cleared all elements');
+    }
+
+    function openModal() {
+      document.getElementById('modalOverlay').classList.add('show');
+      console.log('Modal opened');
+    }
+
+    function closeModal(action) {
+      document.getElementById('modalOverlay').classList.remove('show');
+      const status = document.getElementById('modalStatus');
+      status.style.display = 'block';
+      status.textContent = `Modal closed with action: ${action}`;
+      status.className = action === 'confirm' ? 'status success' : 'status info';
+      console.log(`Modal closed: ${action}`);
+    }
+
+    function loadTableData() {
+      const container = document.getElementById('tableContainer');
+      container.innerHTML = '<div class="loading">Loading data</div>';
+
+      setTimeout(() => {
+        const data = [
+          { id: 1, name: 'John Doe', email: 'john@example.com', status: 'Active' },
+          { id: 2, name: 'Jane Smith', email: 'jane@example.com', status: 'Pending' },
+          { id: 3, name: 'Bob Wilson', email: 'bob@example.com', status: 'Active' },
+          { id: 4, name: 'Alice Brown', email: 'alice@example.com', status: 'Inactive' }
+        ];
+
+        let html = `
+          <table id="dataTable" class="loaded-data">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+
+        data.forEach(row => {
+          html += `
+            <tr data-id="${row.id}">
+              <td>${row.id}</td>
+              <td>${row.name}</td>
+              <td>${row.email}</td>
+              <td>${row.status}</td>
+            </tr>
+          `;
+        });
+
+        html += '</tbody></table>';
+        container.innerHTML = html;
+        console.log('Table data loaded');
+      }, 1500);
+    }
+
+    function initInfiniteScroll() {
+      scrollPage = 0;
+      document.getElementById('scrollContent').innerHTML = '';
+      loadMoreScrollContent();
+    }
+
+    function loadMoreScrollContent() {
+      scrollPage++;
+      const content = document.getElementById('scrollContent');
+      const loader = document.getElementById('scrollLoader');
+
+      loader.style.display = 'block';
+
+      setTimeout(() => {
+        for (let i = 1; i <= 5; i++) {
+          const item = document.createElement('div');
+          item.style.padding = '15px';
+          item.style.borderBottom = '1px solid #eee';
+          item.className = 'scroll-item';
+          item.setAttribute('data-page', scrollPage);
+          item.textContent = `Page ${scrollPage}, Item ${i}`;
+          content.appendChild(item);
+        }
+
+        loader.style.display = 'none';
+        console.log(`Loaded scroll page ${scrollPage}`);
+      }, 1000);
+    }
+
+    let isLoading = false;
+    function handleScroll() {
+      const container = document.getElementById('infiniteScroll');
+      const scrollContent = document.getElementById('scrollContent');
+
+      if (isLoading || scrollPage >= 5) return;
+
+      if (container.scrollTop + container.clientHeight >= scrollContent.scrollHeight - 50) {
+        isLoading = true;
+        loadMoreScrollContent();
+        setTimeout(() => { isLoading = false; }, 1500);
+      }
+    }
+
+    // Log page state for testing
+    console.log('Dynamic content test page loaded');
+    console.log('Available selectors for testing:');
+    console.log('  - #loadContent, #loadFast (buttons)');
+    console.log('  - .dynamic-content (after load)');
+    console.log('  - #dynamicElements .dynamic-item (after adding)');
+    console.log('  - #modalOverlay.show (when modal open)');
+    console.log('  - #modalConfirm (modal button)');
+    console.log('  - #dataTable (after table load)');
+  </script>
+</body>
+</html>

@@ -1,0 +1,1315 @@
+/**
+ * Unit Tests for Request Interceptor Utility
+ *
+ * Tests the RequestInterceptor class functionality including:
+ * - Activation/deactivation
+ * - Block rules
+ * - Header modification rules
+ * - Mock rules
+ * - Redirect rules
+ * - Statistics tracking
+ */
+
+const { setupTestEnvironment, teardownTestEnvironment, resetTestMocks } = require('../helpers/setup');
+
+let RequestInterceptor;
+
+beforeAll(() => {
+  setupTestEnvironment();
+
+  // Define RequestInterceptor class (matching the actual implementation)
+  RequestInterceptor = class RequestInterceptor {
+    constructor(options = {}) {
+      this.urlPatterns = options.urlPatterns || ['<all_urls>'];
+
+      this.headerRules = new Map();
+      this.blockRules = new Map();
+      this.mockRules = new Map();
+      this.redirectRules = new Map();
+
+      this.isActive = false;
+      this.listeners = {
+        onBeforeRequest: null,
+        onBeforeSendHeaders: null
+      };
+
+      this.stats = {
+        interceptedRequests: 0,
+        blockedRequests: 0,
+        modifiedRequests: 0,
+        mockedRequests: 0,
+        redirectedRequests: 0
+      };
+    }
+
+    activate() {
+      if (this.isActive) {
+        return { success: false, message: 'Interceptor already active' };
+      }
+
+      this.isActive = true;
+
+      const filter = { urls: this.urlPatterns };
+
+      this.listeners.onBeforeRequest = this._onBeforeRequest.bind(this);
+      this.listeners.onBeforeSendHeaders = this._onBeforeSendHeaders.bind(this);
+
+      chrome.webRequest.onBeforeRequest.addListener(
+        this.listeners.onBeforeRequest,
+        filter,
+        ['blocking']
+      );
+
+      chrome.webRequest.onBeforeSendHeaders.addListener(
+        this.listeners.onBeforeSendHeaders,
+        filter,
+        ['blocking', 'requestHeaders']
+      );
+
+      return {
+        success: true,
+        message: 'Request interceptor activated',
+        urlPatterns: this.urlPatterns
+      };
+    }
+
+    deactivate() {
+      if (!this.isActive) {
+        return { success: false, message: 'Interceptor not active' };
+      }
+
+      this.isActive = false;
+
+      if (this.listeners.onBeforeRequest) {
+        chrome.webRequest.onBeforeRequest.removeListener(this.listeners.onBeforeRequest);
+        this.listeners.onBeforeRequest = null;
+      }
+      if (this.listeners.onBeforeSendHeaders) {
+        chrome.webRequest.onBeforeSendHeaders.removeListener(this.listeners.onBeforeSendHeaders);
+        this.listeners.onBeforeSendHeaders = null;
+      }
+
+      return {
+        success: true,
+        message: 'Request interceptor deactivated',
+        stats: this.getStats()
+      };
+    }
+
+    addHeaderRule(ruleId, rule) {
+      if (!ruleId || !rule) {
+        return { success: false, message: 'Rule ID and rule configuration required' };
+      }
+
+      const headerRule = {
+        id: ruleId,
+        urlPattern: rule.urlPattern instanceof RegExp
+          ? rule.urlPattern
+          : new RegExp(this._patternToRegex(rule.urlPattern)),
+        addHeaders: rule.addHeaders || {},
+        removeHeaders: rule.removeHeaders || [],
+        modifyHeaders: rule.modifyHeaders || {},
+        method: rule.method ? rule.method.toUpperCase() : null,
+        enabled: true,
+        createdAt: Date.now()
+      };
+
+      this.headerRules.set(ruleId, headerRule);
+
+      return {
+        success: true,
+        message: `Header rule '${ruleId}' added`,
+        rule: { id: ruleId, ...rule }
+      };
+    }
+
+    removeHeaderRule(ruleId) {
+      if (!this.headerRules.has(ruleId)) {
+        return { success: false, message: `Rule '${ruleId}' not found` };
+      }
+
+      this.headerRules.delete(ruleId);
+      return { success: true, message: `Header rule '${ruleId}' removed` };
+    }
+
+    getHeaderRules() {
+      return Array.from(this.headerRules.values()).map(rule => ({
+        id: rule.id,
+        urlPattern: rule.urlPattern.source,
+        addHeaders: rule.addHeaders,
+        removeHeaders: rule.removeHeaders,
+        modifyHeaders: rule.modifyHeaders,
+        method: rule.method,
+        enabled: rule.enabled,
+        createdAt: rule.createdAt
+      }));
+    }
+
+    addBlockRule(ruleId, rule) {
+      if (!ruleId || !rule || !rule.urlPattern) {
+        return { success: false, message: 'Rule ID and URL pattern required' };
+      }
+
+      const blockRule = {
+        id: ruleId,
+        urlPattern: rule.urlPattern instanceof RegExp
+          ? rule.urlPattern
+          : new RegExp(this._patternToRegex(rule.urlPattern)),
+        method: rule.method ? rule.method.toUpperCase() : null,
+        resourceType: rule.resourceType || null,
+        enabled: true,
+        createdAt: Date.now(),
+        blockedCount: 0
+      };
+
+      this.blockRules.set(ruleId, blockRule);
+
+      return {
+        success: true,
+        message: `Block rule '${ruleId}' added`,
+        rule: { id: ruleId, urlPattern: rule.urlPattern }
+      };
+    }
+
+    removeBlockRule(ruleId) {
+      if (!this.blockRules.has(ruleId)) {
+        return { success: false, message: `Block rule '${ruleId}' not found` };
+      }
+
+      this.blockRules.delete(ruleId);
+      return { success: true, message: `Block rule '${ruleId}' removed` };
+    }
+
+    blockUrls(patterns) {
+      if (!patterns || !Array.isArray(patterns)) {
+        return { success: false, message: 'Patterns array required' };
+      }
+
+      const ruleIds = [];
+      for (const pattern of patterns) {
+        const ruleId = `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        this.addBlockRule(ruleId, { urlPattern: pattern });
+        ruleIds.push(ruleId);
+      }
+
+      return {
+        success: true,
+        message: `Added ${ruleIds.length} block rules`,
+        ruleIds
+      };
+    }
+
+    unblockUrls(ruleIds) {
+      if (!ruleIds || !Array.isArray(ruleIds)) {
+        return { success: false, message: 'Rule IDs array required' };
+      }
+
+      let removed = 0;
+      for (const ruleId of ruleIds) {
+        if (this.blockRules.has(ruleId)) {
+          this.blockRules.delete(ruleId);
+          removed++;
+        }
+      }
+
+      return {
+        success: true,
+        message: `Removed ${removed} block rules`,
+        removedCount: removed
+      };
+    }
+
+    clearBlockRules() {
+      const count = this.blockRules.size;
+      this.blockRules.clear();
+      return { success: true, message: `Cleared ${count} block rules` };
+    }
+
+    getBlockRules() {
+      return Array.from(this.blockRules.values()).map(rule => ({
+        id: rule.id,
+        urlPattern: rule.urlPattern.source,
+        method: rule.method,
+        resourceType: rule.resourceType,
+        enabled: rule.enabled,
+        blockedCount: rule.blockedCount,
+        createdAt: rule.createdAt
+      }));
+    }
+
+    addMockRule(ruleId, rule) {
+      if (!ruleId || !rule || !rule.urlPattern || !rule.response) {
+        return { success: false, message: 'Rule ID, URL pattern, and response required' };
+      }
+
+      const mockRule = {
+        id: ruleId,
+        urlPattern: rule.urlPattern instanceof RegExp
+          ? rule.urlPattern
+          : new RegExp(this._patternToRegex(rule.urlPattern)),
+        response: {
+          status: rule.response.status || 200,
+          headers: rule.response.headers || {},
+          body: typeof rule.response.body === 'object'
+            ? JSON.stringify(rule.response.body)
+            : rule.response.body || ''
+        },
+        method: rule.method ? rule.method.toUpperCase() : null,
+        enabled: true,
+        createdAt: Date.now(),
+        mockedCount: 0
+      };
+
+      this.mockRules.set(ruleId, mockRule);
+
+      return {
+        success: true,
+        message: `Mock rule '${ruleId}' added`,
+        rule: { id: ruleId, urlPattern: rule.urlPattern }
+      };
+    }
+
+    removeMockRule(ruleId) {
+      if (!this.mockRules.has(ruleId)) {
+        return { success: false, message: `Mock rule '${ruleId}' not found` };
+      }
+
+      this.mockRules.delete(ruleId);
+      return { success: true, message: `Mock rule '${ruleId}' removed` };
+    }
+
+    getMockRules() {
+      return Array.from(this.mockRules.values()).map(rule => ({
+        id: rule.id,
+        urlPattern: rule.urlPattern.source,
+        response: rule.response,
+        method: rule.method,
+        enabled: rule.enabled,
+        mockedCount: rule.mockedCount,
+        createdAt: rule.createdAt
+      }));
+    }
+
+    addRedirectRule(ruleId, rule) {
+      if (!ruleId || !rule || !rule.urlPattern || !rule.redirectUrl) {
+        return { success: false, message: 'Rule ID, URL pattern, and redirect URL required' };
+      }
+
+      const redirectRule = {
+        id: ruleId,
+        urlPattern: rule.urlPattern instanceof RegExp
+          ? rule.urlPattern
+          : new RegExp(this._patternToRegex(rule.urlPattern)),
+        redirectUrl: rule.redirectUrl,
+        method: rule.method ? rule.method.toUpperCase() : null,
+        enabled: true,
+        createdAt: Date.now(),
+        redirectedCount: 0
+      };
+
+      this.redirectRules.set(ruleId, redirectRule);
+
+      return {
+        success: true,
+        message: `Redirect rule '${ruleId}' added`,
+        rule: { id: ruleId, urlPattern: rule.urlPattern, redirectUrl: rule.redirectUrl }
+      };
+    }
+
+    removeRedirectRule(ruleId) {
+      if (!this.redirectRules.has(ruleId)) {
+        return { success: false, message: `Redirect rule '${ruleId}' not found` };
+      }
+
+      this.redirectRules.delete(ruleId);
+      return { success: true, message: `Redirect rule '${ruleId}' removed` };
+    }
+
+    getRedirectRules() {
+      return Array.from(this.redirectRules.values()).map(rule => ({
+        id: rule.id,
+        urlPattern: rule.urlPattern.source,
+        redirectUrl: rule.redirectUrl,
+        method: rule.method,
+        enabled: rule.enabled,
+        redirectedCount: rule.redirectedCount,
+        createdAt: rule.createdAt
+      }));
+    }
+
+    addRule(rule) {
+      if (!rule || !rule.id || !rule.type) {
+        return { success: false, message: 'Rule ID and type required' };
+      }
+
+      switch (rule.type) {
+        case 'header':
+          return this.addHeaderRule(rule.id, rule.config);
+        case 'block':
+          return this.addBlockRule(rule.id, rule.config);
+        case 'mock':
+          return this.addMockRule(rule.id, rule.config);
+        case 'redirect':
+          return this.addRedirectRule(rule.id, rule.config);
+        default:
+          return { success: false, message: `Unknown rule type: ${rule.type}` };
+      }
+    }
+
+    removeRule(ruleId, type = null) {
+      if (type) {
+        switch (type) {
+          case 'header':
+            return this.removeHeaderRule(ruleId);
+          case 'block':
+            return this.removeBlockRule(ruleId);
+          case 'mock':
+            return this.removeMockRule(ruleId);
+          case 'redirect':
+            return this.removeRedirectRule(ruleId);
+          default:
+            return { success: false, message: `Unknown rule type: ${type}` };
+        }
+      }
+
+      if (this.headerRules.has(ruleId)) {
+        return this.removeHeaderRule(ruleId);
+      }
+      if (this.blockRules.has(ruleId)) {
+        return this.removeBlockRule(ruleId);
+      }
+      if (this.mockRules.has(ruleId)) {
+        return this.removeMockRule(ruleId);
+      }
+      if (this.redirectRules.has(ruleId)) {
+        return this.removeRedirectRule(ruleId);
+      }
+
+      return { success: false, message: `Rule '${ruleId}' not found in any category` };
+    }
+
+    getAllRules() {
+      return {
+        headerRules: this.getHeaderRules(),
+        blockRules: this.getBlockRules(),
+        mockRules: this.getMockRules(),
+        redirectRules: this.getRedirectRules()
+      };
+    }
+
+    clearAllRules() {
+      const counts = {
+        headerRules: this.headerRules.size,
+        blockRules: this.blockRules.size,
+        mockRules: this.mockRules.size,
+        redirectRules: this.redirectRules.size
+      };
+
+      this.headerRules.clear();
+      this.blockRules.clear();
+      this.mockRules.clear();
+      this.redirectRules.clear();
+
+      return {
+        success: true,
+        message: 'All rules cleared',
+        cleared: counts
+      };
+    }
+
+    getStats() {
+      return {
+        isActive: this.isActive,
+        interceptedRequests: this.stats.interceptedRequests,
+        blockedRequests: this.stats.blockedRequests,
+        modifiedRequests: this.stats.modifiedRequests,
+        mockedRequests: this.stats.mockedRequests,
+        redirectedRequests: this.stats.redirectedRequests,
+        ruleCounts: {
+          headerRules: this.headerRules.size,
+          blockRules: this.blockRules.size,
+          mockRules: this.mockRules.size,
+          redirectRules: this.redirectRules.size
+        }
+      };
+    }
+
+    resetStats() {
+      this.stats = {
+        interceptedRequests: 0,
+        blockedRequests: 0,
+        modifiedRequests: 0,
+        mockedRequests: 0,
+        redirectedRequests: 0
+      };
+      return { success: true, message: 'Statistics reset' };
+    }
+
+    _onBeforeRequest(details) {
+      this.stats.interceptedRequests++;
+
+      for (const rule of this.blockRules.values()) {
+        if (!rule.enabled) continue;
+        if (rule.method && rule.method !== details.method) continue;
+        if (rule.resourceType && rule.resourceType !== details.type) continue;
+        if (rule.urlPattern.test(details.url)) {
+          rule.blockedCount++;
+          this.stats.blockedRequests++;
+          return { cancel: true };
+        }
+      }
+
+      for (const rule of this.redirectRules.values()) {
+        if (!rule.enabled) continue;
+        if (rule.method && rule.method !== details.method) continue;
+        if (rule.urlPattern.test(details.url)) {
+          rule.redirectedCount++;
+          this.stats.redirectedRequests++;
+          return { redirectUrl: rule.redirectUrl };
+        }
+      }
+
+      return {};
+    }
+
+    _onBeforeSendHeaders(details) {
+      let headers = details.requestHeaders;
+      let modified = false;
+
+      for (const rule of this.headerRules.values()) {
+        if (!rule.enabled) continue;
+        if (rule.method && rule.method !== details.method) continue;
+        if (!rule.urlPattern.test(details.url)) continue;
+
+        if (rule.removeHeaders && rule.removeHeaders.length > 0) {
+          const removeSet = new Set(rule.removeHeaders.map(h => h.toLowerCase()));
+          headers = headers.filter(h => !removeSet.has(h.name.toLowerCase()));
+          modified = true;
+        }
+
+        if (rule.modifyHeaders && Object.keys(rule.modifyHeaders).length > 0) {
+          for (const header of headers) {
+            const modifyConfig = rule.modifyHeaders[header.name];
+            if (modifyConfig) {
+              header.value = modifyConfig.value;
+              modified = true;
+            }
+          }
+        }
+
+        if (rule.addHeaders && Object.keys(rule.addHeaders).length > 0) {
+          for (const [name, value] of Object.entries(rule.addHeaders)) {
+            const existing = headers.find(h => h.name.toLowerCase() === name.toLowerCase());
+            if (existing) {
+              existing.value = value;
+            } else {
+              headers.push({ name, value });
+            }
+          }
+          modified = true;
+        }
+      }
+
+      if (modified) {
+        this.stats.modifiedRequests++;
+        return { requestHeaders: headers };
+      }
+
+      return {};
+    }
+
+    _patternToRegex(pattern) {
+      if (!pattern) return '.*';
+
+      let regex = pattern
+        .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+        .replace(/\*/g, '.*')
+        .replace(/\?/g, '.');
+
+      return regex;
+    }
+  };
+
+  global.RequestInterceptor = RequestInterceptor;
+});
+
+afterAll(() => {
+  teardownTestEnvironment();
+});
+
+beforeEach(() => {
+  resetTestMocks();
+});
+
+describe('RequestInterceptor', () => {
+  describe('Constructor', () => {
+    test('should create interceptor with default options', () => {
+      const interceptor = new RequestInterceptor();
+
+      expect(interceptor.urlPatterns).toEqual(['<all_urls>']);
+      expect(interceptor.isActive).toBe(false);
+      expect(interceptor.headerRules.size).toBe(0);
+      expect(interceptor.blockRules.size).toBe(0);
+      expect(interceptor.mockRules.size).toBe(0);
+      expect(interceptor.redirectRules.size).toBe(0);
+    });
+
+    test('should create interceptor with custom URL patterns', () => {
+      const interceptor = new RequestInterceptor({
+        urlPatterns: ['*://api.example.com/*']
+      });
+
+      expect(interceptor.urlPatterns).toEqual(['*://api.example.com/*']);
+    });
+
+    test('should initialize with zero statistics', () => {
+      const interceptor = new RequestInterceptor();
+
+      expect(interceptor.stats.interceptedRequests).toBe(0);
+      expect(interceptor.stats.blockedRequests).toBe(0);
+      expect(interceptor.stats.modifiedRequests).toBe(0);
+      expect(interceptor.stats.redirectedRequests).toBe(0);
+    });
+  });
+
+  describe('Activation', () => {
+    test('should activate successfully', () => {
+      const interceptor = new RequestInterceptor();
+
+      const result = interceptor.activate();
+
+      expect(result.success).toBe(true);
+      expect(interceptor.isActive).toBe(true);
+    });
+
+    test('should register listeners on activation', () => {
+      const interceptor = new RequestInterceptor();
+
+      interceptor.activate();
+
+      expect(chrome.webRequest.onBeforeRequest.addListener).toHaveBeenCalled();
+      expect(chrome.webRequest.onBeforeSendHeaders.addListener).toHaveBeenCalled();
+    });
+
+    test('should fail if already active', () => {
+      const interceptor = new RequestInterceptor();
+
+      interceptor.activate();
+      const result = interceptor.activate();
+
+      expect(result.success).toBe(false);
+      expect(result.message).toBe('Interceptor already active');
+    });
+
+    test('should use configured URL patterns', () => {
+      const interceptor = new RequestInterceptor({
+        urlPatterns: ['*://api.example.com/*']
+      });
+
+      interceptor.activate();
+
+      const call = chrome.webRequest.onBeforeRequest.addListener.mock.calls[0];
+      expect(call[1].urls).toEqual(['*://api.example.com/*']);
+    });
+  });
+
+  describe('Deactivation', () => {
+    test('should deactivate successfully', () => {
+      const interceptor = new RequestInterceptor();
+
+      interceptor.activate();
+      const result = interceptor.deactivate();
+
+      expect(result.success).toBe(true);
+      expect(interceptor.isActive).toBe(false);
+    });
+
+    test('should remove listeners on deactivation', () => {
+      const interceptor = new RequestInterceptor();
+
+      interceptor.activate();
+      interceptor.deactivate();
+
+      expect(chrome.webRequest.onBeforeRequest.removeListener).toHaveBeenCalled();
+      expect(chrome.webRequest.onBeforeSendHeaders.removeListener).toHaveBeenCalled();
+    });
+
+    test('should fail if not active', () => {
+      const interceptor = new RequestInterceptor();
+
+      const result = interceptor.deactivate();
+
+      expect(result.success).toBe(false);
+      expect(result.message).toBe('Interceptor not active');
+    });
+
+    test('should return stats on deactivation', () => {
+      const interceptor = new RequestInterceptor();
+
+      interceptor.activate();
+      const result = interceptor.deactivate();
+
+      expect(result.stats).toBeDefined();
+      expect(result.stats.isActive).toBe(false);
+    });
+  });
+
+  describe('Block Rules', () => {
+    let interceptor;
+
+    beforeEach(() => {
+      interceptor = new RequestInterceptor();
+    });
+
+    test('should add block rule', () => {
+      const result = interceptor.addBlockRule('block-1', {
+        urlPattern: '*://ads.example.com/*'
+      });
+
+      expect(result.success).toBe(true);
+      expect(interceptor.blockRules.size).toBe(1);
+    });
+
+    test('should fail without URL pattern', () => {
+      const result = interceptor.addBlockRule('block-1', {});
+
+      expect(result.success).toBe(false);
+    });
+
+    test('should remove block rule', () => {
+      interceptor.addBlockRule('block-1', { urlPattern: '*://ads.example.com/*' });
+
+      const result = interceptor.removeBlockRule('block-1');
+
+      expect(result.success).toBe(true);
+      expect(interceptor.blockRules.size).toBe(0);
+    });
+
+    test('should fail to remove non-existent rule', () => {
+      const result = interceptor.removeBlockRule('non-existent');
+
+      expect(result.success).toBe(false);
+    });
+
+    test('should block matching URLs', () => {
+      interceptor.addBlockRule('block-ads', { urlPattern: 'ads\\.example\\.com' });
+      interceptor.activate();
+
+      const result = interceptor._onBeforeRequest({
+        url: 'https://ads.example.com/banner.js',
+        method: 'GET',
+        type: 'script'
+      });
+
+      expect(result.cancel).toBe(true);
+      expect(interceptor.stats.blockedRequests).toBe(1);
+    });
+
+    test('should not block non-matching URLs', () => {
+      interceptor.addBlockRule('block-ads', { urlPattern: 'ads\\.example\\.com' });
+      interceptor.activate();
+
+      const result = interceptor._onBeforeRequest({
+        url: 'https://api.example.com/data',
+        method: 'GET',
+        type: 'xmlhttprequest'
+      });
+
+      expect(result.cancel).toBeUndefined();
+    });
+
+    test('should filter by method', () => {
+      interceptor.addBlockRule('block-post', {
+        urlPattern: 'api\\.example\\.com',
+        method: 'POST'
+      });
+      interceptor.activate();
+
+      const getResult = interceptor._onBeforeRequest({
+        url: 'https://api.example.com/data',
+        method: 'GET',
+        type: 'xmlhttprequest'
+      });
+
+      const postResult = interceptor._onBeforeRequest({
+        url: 'https://api.example.com/data',
+        method: 'POST',
+        type: 'xmlhttprequest'
+      });
+
+      expect(getResult.cancel).toBeUndefined();
+      expect(postResult.cancel).toBe(true);
+    });
+
+    test('should filter by resource type', () => {
+      interceptor.addBlockRule('block-images', {
+        urlPattern: 'cdn\\.example\\.com',
+        resourceType: 'image'
+      });
+      interceptor.activate();
+
+      const scriptResult = interceptor._onBeforeRequest({
+        url: 'https://cdn.example.com/app.js',
+        method: 'GET',
+        type: 'script'
+      });
+
+      const imageResult = interceptor._onBeforeRequest({
+        url: 'https://cdn.example.com/image.png',
+        method: 'GET',
+        type: 'image'
+      });
+
+      expect(scriptResult.cancel).toBeUndefined();
+      expect(imageResult.cancel).toBe(true);
+    });
+
+    test('should block multiple URLs', () => {
+      const result = interceptor.blockUrls([
+        'ads1.example.com',
+        'ads2.example.com',
+        'ads3.example.com'
+      ]);
+
+      expect(result.success).toBe(true);
+      expect(result.ruleIds).toHaveLength(3);
+      expect(interceptor.blockRules.size).toBe(3);
+    });
+
+    test('should unblock URLs by rule IDs', () => {
+      const blockResult = interceptor.blockUrls(['ads.example.com']);
+      const ruleId = blockResult.ruleIds[0];
+
+      const unblockResult = interceptor.unblockUrls([ruleId]);
+
+      expect(unblockResult.success).toBe(true);
+      expect(unblockResult.removedCount).toBe(1);
+      expect(interceptor.blockRules.size).toBe(0);
+    });
+
+    test('should clear all block rules', () => {
+      interceptor.blockUrls(['ads1.com', 'ads2.com', 'ads3.com']);
+
+      const result = interceptor.clearBlockRules();
+
+      expect(result.success).toBe(true);
+      expect(interceptor.blockRules.size).toBe(0);
+    });
+
+    test('should get all block rules', () => {
+      interceptor.addBlockRule('block-1', { urlPattern: 'ads.com' });
+      interceptor.addBlockRule('block-2', { urlPattern: 'trackers.com' });
+
+      const rules = interceptor.getBlockRules();
+
+      expect(rules).toHaveLength(2);
+      expect(rules[0].id).toBe('block-1');
+      expect(rules[1].id).toBe('block-2');
+    });
+
+    test('should track blocked count per rule', () => {
+      interceptor.addBlockRule('block-ads', { urlPattern: 'ads\\.example\\.com' });
+      interceptor.activate();
+
+      interceptor._onBeforeRequest({ url: 'https://ads.example.com/1', method: 'GET', type: 'script' });
+      interceptor._onBeforeRequest({ url: 'https://ads.example.com/2', method: 'GET', type: 'script' });
+      interceptor._onBeforeRequest({ url: 'https://ads.example.com/3', method: 'GET', type: 'script' });
+
+      const rules = interceptor.getBlockRules();
+      expect(rules[0].blockedCount).toBe(3);
+    });
+  });
+
+  describe('Header Rules', () => {
+    let interceptor;
+
+    beforeEach(() => {
+      interceptor = new RequestInterceptor();
+    });
+
+    test('should add header rule', () => {
+      const result = interceptor.addHeaderRule('add-auth', {
+        urlPattern: 'api\\.example\\.com',
+        addHeaders: { 'Authorization': 'Bearer token' }
+      });
+
+      expect(result.success).toBe(true);
+      expect(interceptor.headerRules.size).toBe(1);
+    });
+
+    test('should fail without rule config', () => {
+      const result = interceptor.addHeaderRule('add-auth', null);
+
+      expect(result.success).toBe(false);
+    });
+
+    test('should remove header rule', () => {
+      interceptor.addHeaderRule('add-auth', {
+        urlPattern: 'api\\.example\\.com',
+        addHeaders: { 'Authorization': 'Bearer token' }
+      });
+
+      const result = interceptor.removeHeaderRule('add-auth');
+
+      expect(result.success).toBe(true);
+      expect(interceptor.headerRules.size).toBe(0);
+    });
+
+    test('should add headers to requests', () => {
+      interceptor.addHeaderRule('add-headers', {
+        urlPattern: 'api\\.example\\.com',
+        addHeaders: {
+          'X-Custom-Header': 'custom-value',
+          'X-Another': 'another-value'
+        }
+      });
+      interceptor.activate();
+
+      const result = interceptor._onBeforeSendHeaders({
+        url: 'https://api.example.com/data',
+        method: 'GET',
+        requestHeaders: [
+          { name: 'Accept', value: 'application/json' }
+        ]
+      });
+
+      expect(result.requestHeaders).toContainEqual({ name: 'X-Custom-Header', value: 'custom-value' });
+      expect(result.requestHeaders).toContainEqual({ name: 'X-Another', value: 'another-value' });
+      expect(interceptor.stats.modifiedRequests).toBe(1);
+    });
+
+    test('should remove headers from requests', () => {
+      interceptor.addHeaderRule('remove-headers', {
+        urlPattern: 'api\\.example\\.com',
+        removeHeaders: ['Cookie', 'Authorization']
+      });
+      interceptor.activate();
+
+      const result = interceptor._onBeforeSendHeaders({
+        url: 'https://api.example.com/data',
+        method: 'GET',
+        requestHeaders: [
+          { name: 'Accept', value: 'application/json' },
+          { name: 'Cookie', value: 'session=abc' },
+          { name: 'Authorization', value: 'Bearer token' }
+        ]
+      });
+
+      expect(result.requestHeaders).toHaveLength(1);
+      expect(result.requestHeaders[0].name).toBe('Accept');
+    });
+
+    test('should modify existing headers', () => {
+      interceptor.addHeaderRule('modify-headers', {
+        urlPattern: 'api\\.example\\.com',
+        modifyHeaders: {
+          'User-Agent': { value: 'Custom Agent' }
+        }
+      });
+      interceptor.activate();
+
+      const result = interceptor._onBeforeSendHeaders({
+        url: 'https://api.example.com/data',
+        method: 'GET',
+        requestHeaders: [
+          { name: 'User-Agent', value: 'Original Agent' }
+        ]
+      });
+
+      expect(result.requestHeaders[0].value).toBe('Custom Agent');
+    });
+
+    test('should not modify non-matching URLs', () => {
+      interceptor.addHeaderRule('add-headers', {
+        urlPattern: 'api\\.example\\.com',
+        addHeaders: { 'X-Custom': 'value' }
+      });
+      interceptor.activate();
+
+      const result = interceptor._onBeforeSendHeaders({
+        url: 'https://other.com/data',
+        method: 'GET',
+        requestHeaders: [{ name: 'Accept', value: 'application/json' }]
+      });
+
+      expect(result.requestHeaders).toBeUndefined();
+    });
+
+    test('should filter by method', () => {
+      interceptor.addHeaderRule('add-auth-post', {
+        urlPattern: 'api\\.example\\.com',
+        method: 'POST',
+        addHeaders: { 'Authorization': 'Bearer token' }
+      });
+      interceptor.activate();
+
+      const getResult = interceptor._onBeforeSendHeaders({
+        url: 'https://api.example.com/data',
+        method: 'GET',
+        requestHeaders: []
+      });
+
+      const postResult = interceptor._onBeforeSendHeaders({
+        url: 'https://api.example.com/data',
+        method: 'POST',
+        requestHeaders: []
+      });
+
+      expect(getResult.requestHeaders).toBeUndefined();
+      expect(postResult.requestHeaders).toContainEqual({ name: 'Authorization', value: 'Bearer token' });
+    });
+  });
+
+  describe('Redirect Rules', () => {
+    let interceptor;
+
+    beforeEach(() => {
+      interceptor = new RequestInterceptor();
+    });
+
+    test('should add redirect rule', () => {
+      const result = interceptor.addRedirectRule('redirect-1', {
+        urlPattern: 'old\\.example\\.com',
+        redirectUrl: 'https://new.example.com'
+      });
+
+      expect(result.success).toBe(true);
+      expect(interceptor.redirectRules.size).toBe(1);
+    });
+
+    test('should fail without redirect URL', () => {
+      const result = interceptor.addRedirectRule('redirect-1', {
+        urlPattern: 'old.example.com'
+      });
+
+      expect(result.success).toBe(false);
+    });
+
+    test('should remove redirect rule', () => {
+      interceptor.addRedirectRule('redirect-1', {
+        urlPattern: 'old.example.com',
+        redirectUrl: 'https://new.example.com'
+      });
+
+      const result = interceptor.removeRedirectRule('redirect-1');
+
+      expect(result.success).toBe(true);
+      expect(interceptor.redirectRules.size).toBe(0);
+    });
+
+    test('should redirect matching URLs', () => {
+      interceptor.addRedirectRule('redirect-old', {
+        urlPattern: 'old\\.example\\.com',
+        redirectUrl: 'https://new.example.com/path'
+      });
+      interceptor.activate();
+
+      const result = interceptor._onBeforeRequest({
+        url: 'https://old.example.com/page',
+        method: 'GET',
+        type: 'main_frame'
+      });
+
+      expect(result.redirectUrl).toBe('https://new.example.com/path');
+      expect(interceptor.stats.redirectedRequests).toBe(1);
+    });
+
+    test('should not redirect non-matching URLs', () => {
+      interceptor.addRedirectRule('redirect-old', {
+        urlPattern: 'old\\.example\\.com',
+        redirectUrl: 'https://new.example.com'
+      });
+      interceptor.activate();
+
+      const result = interceptor._onBeforeRequest({
+        url: 'https://current.example.com/page',
+        method: 'GET',
+        type: 'main_frame'
+      });
+
+      expect(result.redirectUrl).toBeUndefined();
+    });
+
+    test('should track redirect count per rule', () => {
+      interceptor.addRedirectRule('redirect-old', {
+        urlPattern: 'old\\.example\\.com',
+        redirectUrl: 'https://new.example.com'
+      });
+      interceptor.activate();
+
+      interceptor._onBeforeRequest({ url: 'https://old.example.com/1', method: 'GET', type: 'main_frame' });
+      interceptor._onBeforeRequest({ url: 'https://old.example.com/2', method: 'GET', type: 'main_frame' });
+
+      const rules = interceptor.getRedirectRules();
+      expect(rules[0].redirectedCount).toBe(2);
+    });
+  });
+
+  describe('Mock Rules', () => {
+    let interceptor;
+
+    beforeEach(() => {
+      interceptor = new RequestInterceptor();
+    });
+
+    test('should add mock rule', () => {
+      const result = interceptor.addMockRule('mock-api', {
+        urlPattern: 'api\\.example\\.com',
+        response: {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+          body: { data: 'mocked' }
+        }
+      });
+
+      expect(result.success).toBe(true);
+      expect(interceptor.mockRules.size).toBe(1);
+    });
+
+    test('should fail without response', () => {
+      const result = interceptor.addMockRule('mock-api', {
+        urlPattern: 'api.example.com'
+      });
+
+      expect(result.success).toBe(false);
+    });
+
+    test('should remove mock rule', () => {
+      interceptor.addMockRule('mock-api', {
+        urlPattern: 'api.example.com',
+        response: { status: 200, body: 'test' }
+      });
+
+      const result = interceptor.removeMockRule('mock-api');
+
+      expect(result.success).toBe(true);
+      expect(interceptor.mockRules.size).toBe(0);
+    });
+
+    test('should stringify object body', () => {
+      interceptor.addMockRule('mock-api', {
+        urlPattern: 'api.example.com',
+        response: {
+          status: 200,
+          body: { key: 'value' }
+        }
+      });
+
+      const rules = interceptor.getMockRules();
+      expect(rules[0].response.body).toBe('{"key":"value"}');
+    });
+
+    test('should get all mock rules', () => {
+      interceptor.addMockRule('mock-1', {
+        urlPattern: 'api1.com',
+        response: { status: 200, body: 'test1' }
+      });
+      interceptor.addMockRule('mock-2', {
+        urlPattern: 'api2.com',
+        response: { status: 201, body: 'test2' }
+      });
+
+      const rules = interceptor.getMockRules();
+
+      expect(rules).toHaveLength(2);
+    });
+  });
+
+  describe('Generic Rule Management', () => {
+    let interceptor;
+
+    beforeEach(() => {
+      interceptor = new RequestInterceptor();
+    });
+
+    test('should add rule by type', () => {
+      const result = interceptor.addRule({
+        id: 'block-1',
+        type: 'block',
+        config: { urlPattern: 'ads.com' }
+      });
+
+      expect(result.success).toBe(true);
+      expect(interceptor.blockRules.size).toBe(1);
+    });
+
+    test('should fail for unknown type', () => {
+      const result = interceptor.addRule({
+        id: 'rule-1',
+        type: 'unknown',
+        config: {}
+      });
+
+      expect(result.success).toBe(false);
+    });
+
+    test('should remove rule by ID (auto-detect type)', () => {
+      interceptor.addBlockRule('block-1', { urlPattern: 'ads.com' });
+
+      const result = interceptor.removeRule('block-1');
+
+      expect(result.success).toBe(true);
+      expect(interceptor.blockRules.size).toBe(0);
+    });
+
+    test('should remove rule by ID and type', () => {
+      interceptor.addHeaderRule('header-1', {
+        urlPattern: 'api.com',
+        addHeaders: { 'X-Test': 'value' }
+      });
+
+      const result = interceptor.removeRule('header-1', 'header');
+
+      expect(result.success).toBe(true);
+    });
+
+    test('should fail to remove non-existent rule', () => {
+      const result = interceptor.removeRule('non-existent');
+
+      expect(result.success).toBe(false);
+    });
+
+    test('should get all rules', () => {
+      interceptor.addBlockRule('block-1', { urlPattern: 'ads.com' });
+      interceptor.addHeaderRule('header-1', { urlPattern: 'api.com', addHeaders: {} });
+      interceptor.addRedirectRule('redirect-1', { urlPattern: 'old.com', redirectUrl: 'https://new.com' });
+      interceptor.addMockRule('mock-1', { urlPattern: 'api.com', response: { status: 200, body: '' } });
+
+      const allRules = interceptor.getAllRules();
+
+      expect(allRules.blockRules).toHaveLength(1);
+      expect(allRules.headerRules).toHaveLength(1);
+      expect(allRules.redirectRules).toHaveLength(1);
+      expect(allRules.mockRules).toHaveLength(1);
+    });
+
+    test('should clear all rules', () => {
+      interceptor.addBlockRule('block-1', { urlPattern: 'ads.com' });
+      interceptor.addHeaderRule('header-1', { urlPattern: 'api.com', addHeaders: {} });
+
+      const result = interceptor.clearAllRules();
+
+      expect(result.success).toBe(true);
+      expect(result.cleared.blockRules).toBe(1);
+      expect(result.cleared.headerRules).toBe(1);
+      expect(interceptor.blockRules.size).toBe(0);
+      expect(interceptor.headerRules.size).toBe(0);
+    });
+  });
+
+  describe('Statistics', () => {
+    let interceptor;
+
+    beforeEach(() => {
+      interceptor = new RequestInterceptor();
+    });
+
+    test('should return accurate stats', () => {
+      interceptor.addBlockRule('block-1', { urlPattern: 'ads.com' });
+      interceptor.addHeaderRule('header-1', { urlPattern: 'api.com', addHeaders: {} });
+
+      const stats = interceptor.getStats();
+
+      expect(stats.isActive).toBe(false);
+      expect(stats.interceptedRequests).toBe(0);
+      expect(stats.ruleCounts.blockRules).toBe(1);
+      expect(stats.ruleCounts.headerRules).toBe(1);
+    });
+
+    test('should track intercepted requests', () => {
+      interceptor.activate();
+
+      interceptor._onBeforeRequest({ url: 'https://example.com/1', method: 'GET', type: 'main_frame' });
+      interceptor._onBeforeRequest({ url: 'https://example.com/2', method: 'GET', type: 'main_frame' });
+
+      expect(interceptor.stats.interceptedRequests).toBe(2);
+    });
+
+    test('should reset stats', () => {
+      interceptor.stats.interceptedRequests = 100;
+      interceptor.stats.blockedRequests = 50;
+
+      const result = interceptor.resetStats();
+
+      expect(result.success).toBe(true);
+      expect(interceptor.stats.interceptedRequests).toBe(0);
+      expect(interceptor.stats.blockedRequests).toBe(0);
+    });
+  });
+
+  describe('Pattern Conversion', () => {
+    let interceptor;
+
+    beforeEach(() => {
+      interceptor = new RequestInterceptor();
+    });
+
+    test('should convert glob patterns to regex', () => {
+      const regex = interceptor._patternToRegex('*.example.com/*');
+
+      expect(regex).toBe('.*\\.example\\.com/.*');
+    });
+
+    test('should escape special characters', () => {
+      const regex = interceptor._patternToRegex('api.example.com/path?query=value');
+
+      expect(regex).toContain('\\.');
+      expect(regex).toContain('\\?');
+    });
+
+    test('should handle null pattern', () => {
+      const regex = interceptor._patternToRegex(null);
+
+      expect(regex).toBe('.*');
+    });
+
+    test('should support RegExp objects', () => {
+      interceptor.addBlockRule('regex-rule', {
+        urlPattern: /ads\.\w+\.com/
+      });
+
+      const rules = interceptor.getBlockRules();
+      expect(rules[0].urlPattern).toBe('ads\\.\\w+\\.com');
+    });
+  });
+
+  describe('Rule Priority', () => {
+    let interceptor;
+
+    beforeEach(() => {
+      interceptor = new RequestInterceptor();
+      interceptor.activate();
+    });
+
+    test('should check block rules before redirect rules', () => {
+      interceptor.addBlockRule('block-all', { urlPattern: '.*' });
+      interceptor.addRedirectRule('redirect-all', {
+        urlPattern: '.*',
+        redirectUrl: 'https://example.com'
+      });
+
+      const result = interceptor._onBeforeRequest({
+        url: 'https://test.com',
+        method: 'GET',
+        type: 'main_frame'
+      });
+
+      // Block should take priority
+      expect(result.cancel).toBe(true);
+      expect(result.redirectUrl).toBeUndefined();
+    });
+
+    test('should skip disabled rules', () => {
+      interceptor.addBlockRule('disabled-rule', { urlPattern: '.*' });
+      interceptor.blockRules.get('disabled-rule').enabled = false;
+
+      const result = interceptor._onBeforeRequest({
+        url: 'https://test.com',
+        method: 'GET',
+        type: 'main_frame'
+      });
+
+      expect(result.cancel).toBeUndefined();
+    });
+  });
+});

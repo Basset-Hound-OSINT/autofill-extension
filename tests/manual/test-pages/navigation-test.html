@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navigation Test Page</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f0f4f8;
+        }
+        h1, h2, h3 {
+            color: #2d3748;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .nav-list {
+            list-style: none;
+            padding: 0;
+        }
+        .nav-list li {
+            margin: 10px 0;
+        }
+        .nav-list a {
+            display: inline-block;
+            padding: 12px 20px;
+            background: #4a90d9;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .nav-list a:hover {
+            background: #357abd;
+        }
+        button {
+            padding: 12px 20px;
+            background: #48bb78;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #38a169;
+        }
+        button.danger {
+            background: #e53e3e;
+        }
+        button.danger:hover {
+            background: #c53030;
+        }
+        button.secondary {
+            background: #718096;
+        }
+        button.secondary:hover {
+            background: #4a5568;
+        }
+        .clickable {
+            padding: 15px;
+            background: #e2e8f0;
+            border-radius: 6px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .clickable:hover {
+            background: #cbd5e0;
+            transform: translateX(5px);
+        }
+        .clickable.clicked {
+            background: #c6f6d5;
+            border-left: 4px solid #48bb78;
+        }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.visible {
+            display: flex;
+        }
+        .modal {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+        }
+        .modal h3 {
+            margin-top: 0;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+        }
+        .tab:hover {
+            background: #f7fafc;
+        }
+        .tab.active {
+            border-bottom-color: #4a90d9;
+            color: #4a90d9;
+            font-weight: 600;
+        }
+        .tab-content {
+            display: none;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 6px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .breadcrumb {
+            display: flex;
+            gap: 10px;
+            padding: 15px;
+            background: #edf2f7;
+            border-radius: 6px;
+        }
+        .breadcrumb a {
+            color: #4a90d9;
+            text-decoration: none;
+        }
+        .breadcrumb span {
+            color: #a0aec0;
+        }
+        .accordion-item {
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        .accordion-header {
+            padding: 15px;
+            background: #edf2f7;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .accordion-header:hover {
+            background: #e2e8f0;
+        }
+        .accordion-content {
+            padding: 15px;
+            display: none;
+        }
+        .accordion-item.open .accordion-content {
+            display: block;
+        }
+        .accordion-item.open .accordion-arrow {
+            transform: rotate(180deg);
+        }
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            min-width: 200px;
+            z-index: 100;
+        }
+        .dropdown.open .dropdown-menu {
+            display: block;
+        }
+        .dropdown-menu a {
+            display: block;
+            padding: 12px 16px;
+            text-decoration: none;
+            color: #2d3748;
+        }
+        .dropdown-menu a:hover {
+            background: #f7fafc;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-indicator.green { background: #48bb78; }
+        .status-indicator.yellow { background: #ecc94b; }
+        .status-indicator.red { background: #f56565; }
+        #click-counter {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4a90d9;
+        }
+        .event-log {
+            background: #1a202c;
+            color: #68d391;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        #loading-indicator {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .spinner {
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #4a90d9;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <h1>Navigation and Click Test Page</h1>
+    <p>This page tests click handling, navigation, and interactive elements.</p>
+
+    <!-- Event Log -->
+    <div class="test-section">
+        <h2>Event Log</h2>
+        <div id="event-log" class="event-log">Click events will appear here...</div>
+        <button onclick="clearLog()" class="secondary">Clear Log</button>
+    </div>
+
+    <!-- Basic Links -->
+    <div class="test-section">
+        <h2>1. Navigation Links</h2>
+        <ul class="nav-list">
+            <li><a href="form-test.html" id="link-forms">Form Test Page</a></li>
+            <li><a href="storage-test.html" id="link-storage">Storage Test Page</a></li>
+            <li><a href="https://example.com" id="link-external" target="_blank">External Link (example.com)</a></li>
+            <li><a href="#section-tabs" id="link-anchor">Jump to Tabs Section</a></li>
+        </ul>
+    </div>
+
+    <!-- Click Tracking -->
+    <div class="test-section">
+        <h2>2. Click Counter</h2>
+        <p>Click count: <span id="click-counter">0</span></p>
+        <button id="increment-btn" onclick="incrementCounter()">Increment (+1)</button>
+        <button id="decrement-btn" onclick="decrementCounter()">Decrement (-1)</button>
+        <button id="reset-btn" onclick="resetCounter()" class="danger">Reset</button>
+    </div>
+
+    <!-- Various Clickable Elements -->
+    <div class="test-section">
+        <h2>3. Clickable Elements</h2>
+
+        <div class="clickable" id="click-div" onclick="handleClick(this, 'Div clicked')">
+            Click this div (ID: click-div)
+        </div>
+
+        <div class="clickable" data-testid="test-clickable" onclick="handleClick(this, 'TestID element clicked')">
+            Click this element (data-testid: test-clickable)
+        </div>
+
+        <div class="clickable" aria-label="Accessible clickable" onclick="handleClick(this, 'Aria-label element clicked')">
+            Click this element (aria-label: Accessible clickable)
+        </div>
+
+        <div role="button" class="clickable" id="role-button" onclick="handleClick(this, 'Role button clicked')" tabindex="0">
+            Role="button" element (ID: role-button)
+        </div>
+    </div>
+
+    <!-- Buttons with Different States -->
+    <div class="test-section">
+        <h2>4. Button States</h2>
+        <button id="normal-btn" onclick="logEvent('Normal button clicked')">Normal Button</button>
+        <button id="disabled-btn" disabled>Disabled Button</button>
+        <button id="toggle-btn" onclick="toggleButton()">Toggle Next Button</button>
+        <button id="toggleable-btn" onclick="logEvent('Toggleable button clicked')">Toggleable</button>
+    </div>
+
+    <!-- Modal Dialog -->
+    <div class="test-section">
+        <h2>5. Modal Dialog</h2>
+        <button id="open-modal-btn" onclick="openModal()">Open Modal</button>
+
+        <div class="modal-overlay" id="modal-overlay">
+            <div class="modal" id="modal-dialog">
+                <h3>Modal Dialog</h3>
+                <p>This is a modal dialog. Test closing it by clicking the button below or the overlay.</p>
+                <button id="modal-confirm-btn" onclick="closeModal('confirmed')">Confirm</button>
+                <button id="modal-cancel-btn" onclick="closeModal('cancelled')" class="secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="test-section" id="section-tabs">
+        <h2>6. Tabs Navigation</h2>
+        <div class="tabs">
+            <div class="tab active" data-tab="tab1" onclick="switchTab('tab1')">Tab 1</div>
+            <div class="tab" data-tab="tab2" onclick="switchTab('tab2')">Tab 2</div>
+            <div class="tab" data-tab="tab3" onclick="switchTab('tab3')">Tab 3</div>
+        </div>
+        <div class="tab-content active" id="tab1">
+            <h3>Tab 1 Content</h3>
+            <p>This is the content of Tab 1. It contains some text and a button.</p>
+            <button onclick="logEvent('Tab 1 button clicked')">Tab 1 Button</button>
+        </div>
+        <div class="tab-content" id="tab2">
+            <h3>Tab 2 Content</h3>
+            <p>This is the content of Tab 2. Different content here.</p>
+            <button onclick="logEvent('Tab 2 button clicked')">Tab 2 Button</button>
+        </div>
+        <div class="tab-content" id="tab3">
+            <h3>Tab 3 Content</h3>
+            <p>This is the content of Tab 3. Yet another section.</p>
+            <button onclick="logEvent('Tab 3 button clicked')">Tab 3 Button</button>
+        </div>
+    </div>
+
+    <!-- Accordion -->
+    <div class="test-section">
+        <h2>7. Accordion</h2>
+        <div class="accordion-item" id="accordion-1">
+            <div class="accordion-header" onclick="toggleAccordion('accordion-1')">
+                <span>Section 1: Getting Started</span>
+                <span class="accordion-arrow">&#9660;</span>
+            </div>
+            <div class="accordion-content">
+                <p>This is the content for Section 1. Click the header to collapse.</p>
+                <button onclick="logEvent('Accordion 1 button clicked')">Action Button</button>
+            </div>
+        </div>
+        <div class="accordion-item" id="accordion-2">
+            <div class="accordion-header" onclick="toggleAccordion('accordion-2')">
+                <span>Section 2: Configuration</span>
+                <span class="accordion-arrow">&#9660;</span>
+            </div>
+            <div class="accordion-content">
+                <p>This is the content for Section 2.</p>
+            </div>
+        </div>
+        <div class="accordion-item" id="accordion-3">
+            <div class="accordion-header" onclick="toggleAccordion('accordion-3')">
+                <span>Section 3: Advanced</span>
+                <span class="accordion-arrow">&#9660;</span>
+            </div>
+            <div class="accordion-content">
+                <p>This is the content for Section 3.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dropdown Menu -->
+    <div class="test-section">
+        <h2>8. Dropdown Menu</h2>
+        <div class="dropdown" id="dropdown-1">
+            <button onclick="toggleDropdown('dropdown-1')">Open Dropdown</button>
+            <div class="dropdown-menu">
+                <a href="#" onclick="selectDropdownItem('Option 1')">Option 1</a>
+                <a href="#" onclick="selectDropdownItem('Option 2')">Option 2</a>
+                <a href="#" onclick="selectDropdownItem('Option 3')">Option 3</a>
+                <a href="#" onclick="selectDropdownItem('Option 4')">Option 4</a>
+            </div>
+        </div>
+        <span id="dropdown-selection">Selected: None</span>
+    </div>
+
+    <!-- Breadcrumb Navigation -->
+    <div class="test-section">
+        <h2>9. Breadcrumb Navigation</h2>
+        <div class="breadcrumb">
+            <a href="#" id="breadcrumb-home" onclick="handleBreadcrumb('Home')">Home</a>
+            <span>/</span>
+            <a href="#" id="breadcrumb-products" onclick="handleBreadcrumb('Products')">Products</a>
+            <span>/</span>
+            <a href="#" id="breadcrumb-category" onclick="handleBreadcrumb('Category')">Category</a>
+            <span>/</span>
+            <span>Current Page</span>
+        </div>
+    </div>
+
+    <!-- Async Loading -->
+    <div class="test-section">
+        <h2>10. Async Loading (Wait Test)</h2>
+        <button id="load-content-btn" onclick="loadAsyncContent()">Load Content (2s delay)</button>
+        <div id="loading-indicator">
+            <div class="spinner"></div>
+            <p>Loading...</p>
+        </div>
+        <div id="async-content"></div>
+    </div>
+
+    <!-- Status Indicators -->
+    <div class="test-section">
+        <h2>11. Status Toggles</h2>
+        <p>
+            <span class="status-indicator green" id="status-1"></span>
+            <span>Status 1</span>
+            <button onclick="toggleStatus('status-1')" class="secondary">Toggle</button>
+        </p>
+        <p>
+            <span class="status-indicator yellow" id="status-2"></span>
+            <span>Status 2</span>
+            <button onclick="toggleStatus('status-2')" class="secondary">Toggle</button>
+        </p>
+        <p>
+            <span class="status-indicator red" id="status-3"></span>
+            <span>Status 3</span>
+            <button onclick="toggleStatus('status-3')" class="secondary">Toggle</button>
+        </p>
+    </div>
+
+    <script>
+        let clickCount = 0;
+
+        function logEvent(message) {
+            const log = document.getElementById('event-log');
+            const timestamp = new Date().toLocaleTimeString();
+            log.textContent += `[${timestamp}] ${message}\n`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('event-log').textContent = 'Log cleared...\n';
+        }
+
+        function incrementCounter() {
+            clickCount++;
+            document.getElementById('click-counter').textContent = clickCount;
+            logEvent(`Counter incremented to ${clickCount}`);
+        }
+
+        function decrementCounter() {
+            clickCount--;
+            document.getElementById('click-counter').textContent = clickCount;
+            logEvent(`Counter decremented to ${clickCount}`);
+        }
+
+        function resetCounter() {
+            clickCount = 0;
+            document.getElementById('click-counter').textContent = clickCount;
+            logEvent('Counter reset to 0');
+        }
+
+        function handleClick(element, message) {
+            element.classList.add('clicked');
+            logEvent(message);
+            setTimeout(() => element.classList.remove('clicked'), 1000);
+        }
+
+        function toggleButton() {
+            const btn = document.getElementById('toggleable-btn');
+            btn.disabled = !btn.disabled;
+            logEvent(`Toggleable button ${btn.disabled ? 'disabled' : 'enabled'}`);
+        }
+
+        function openModal() {
+            document.getElementById('modal-overlay').classList.add('visible');
+            logEvent('Modal opened');
+        }
+
+        function closeModal(result) {
+            document.getElementById('modal-overlay').classList.remove('visible');
+            logEvent(`Modal closed: ${result}`);
+        }
+
+        // Close modal on overlay click
+        document.getElementById('modal-overlay').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('modal-overlay')) {
+                closeModal('overlay-click');
+            }
+        });
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+            logEvent(`Switched to ${tabId}`);
+        }
+
+        function toggleAccordion(id) {
+            const item = document.getElementById(id);
+            const wasOpen = item.classList.contains('open');
+            item.classList.toggle('open');
+            logEvent(`Accordion ${id} ${wasOpen ? 'closed' : 'opened'}`);
+        }
+
+        function toggleDropdown(id) {
+            const dropdown = document.getElementById(id);
+            dropdown.classList.toggle('open');
+            logEvent(`Dropdown ${dropdown.classList.contains('open') ? 'opened' : 'closed'}`);
+        }
+
+        function selectDropdownItem(option) {
+            document.getElementById('dropdown-selection').textContent = `Selected: ${option}`;
+            document.getElementById('dropdown-1').classList.remove('open');
+            logEvent(`Dropdown selected: ${option}`);
+            return false;
+        }
+
+        function handleBreadcrumb(item) {
+            logEvent(`Breadcrumb clicked: ${item}`);
+            return false;
+        }
+
+        function loadAsyncContent() {
+            const loading = document.getElementById('loading-indicator');
+            const content = document.getElementById('async-content');
+
+            loading.style.display = 'block';
+            content.innerHTML = '';
+            logEvent('Async loading started');
+
+            setTimeout(() => {
+                loading.style.display = 'none';
+                content.innerHTML = `
+                    <div id="async-loaded-content" style="padding: 15px; background: #c6f6d5; border-radius: 6px;">
+                        <h3>Content Loaded!</h3>
+                        <p>This content was loaded after a 2 second delay.</p>
+                        <button id="async-btn" onclick="logEvent('Async content button clicked')">Click Me</button>
+                    </div>
+                `;
+                logEvent('Async content loaded');
+            }, 2000);
+        }
+
+        function toggleStatus(id) {
+            const indicator = document.getElementById(id);
+            const states = ['green', 'yellow', 'red'];
+            let current = states.findIndex(s => indicator.classList.contains(s));
+            indicator.classList.remove(states[current]);
+            current = (current + 1) % states.length;
+            indicator.classList.add(states[current]);
+            logEvent(`${id} status changed to ${states[current]}`);
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.dropdown')) {
+                document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('open'));
+            }
+        });
+
+        // Log page load
+        logEvent('Navigation test page loaded');
+    </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- Basset Hound icon - simplified dog head -->
+  <defs>
+    <linearGradient id="bg16" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3498db"/>
+      <stop offset="100%" style="stop-color:#2c3e50"/>
+    </linearGradient>
+  </defs>
+  <!-- Background circle -->
+  <circle cx="8" cy="8" r="7" fill="url(#bg16)"/>
+  <!-- Dog ear left -->
+  <ellipse cx="4" cy="9" rx="2" ry="3" fill="#8B4513"/>
+  <!-- Dog ear right -->
+  <ellipse cx="12" cy="9" rx="2" ry="3" fill="#8B4513"/>
+  <!-- Dog face -->
+  <ellipse cx="8" cy="8" rx="4" ry="3.5" fill="#D2691E"/>
+  <!-- Snout -->
+  <ellipse cx="8" cy="10" rx="2" ry="1.5" fill="#DEB887"/>
+  <!-- Nose -->
+  <ellipse cx="8" cy="9.5" rx="1" ry="0.7" fill="#000"/>
+  <!-- Eye left -->
+  <circle cx="6" cy="7" r="0.8" fill="#000"/>
+  <!-- Eye right -->
+  <circle cx="10" cy="7" r="0.8" fill="#000"/>
+</svg>

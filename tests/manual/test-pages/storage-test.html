@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storage Test Page</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #faf5ff;
+        }
+        h1, h2, h3 {
+            color: #553c9a;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        button {
+            padding: 10px 16px;
+            background: #805ad5;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #6b46c1;
+        }
+        button.danger {
+            background: #e53e3e;
+        }
+        button.danger:hover {
+            background: #c53030;
+        }
+        button.secondary {
+            background: #718096;
+        }
+        button.secondary:hover {
+            background: #4a5568;
+        }
+        button.success {
+            background: #48bb78;
+        }
+        button.success:hover {
+            background: #38a169;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .storage-viewer {
+            background: #1a202c;
+            color: #68d391;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .storage-viewer.empty {
+            color: #a0aec0;
+            font-style: italic;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #805ad5;
+        }
+        .stat-label {
+            color: #718096;
+            font-size: 14px;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 600px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+        .cookie-item, .storage-item {
+            background: #f7fafc;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+            border-left: 4px solid #805ad5;
+        }
+        .cookie-item .name, .storage-item .key {
+            font-weight: bold;
+            color: #2d3748;
+        }
+        .cookie-item .value, .storage-item .value {
+            color: #4a5568;
+            word-break: break-all;
+        }
+        .cookie-item .meta {
+            font-size: 12px;
+            color: #718096;
+            margin-top: 5px;
+        }
+        .inline-form {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+        .inline-form .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        .event-log {
+            background: #1a202c;
+            color: #fbd38d;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        th {
+            background: #f7fafc;
+            font-weight: 600;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .badge-secure { background: #c6f6d5; color: #22543d; }
+        .badge-httponly { background: #bee3f8; color: #2a4365; }
+        .badge-session { background: #fefcbf; color: #744210; }
+    </style>
+</head>
+<body>
+    <h1>Storage Test Page</h1>
+    <p>This page tests cookie, localStorage, and sessionStorage management.</p>
+
+    <!-- Event Log -->
+    <div class="test-section">
+        <h2>Event Log</h2>
+        <div id="event-log" class="event-log">Storage events will appear here...</div>
+        <button onclick="clearLog()" class="secondary">Clear Log</button>
+    </div>
+
+    <!-- Storage Stats -->
+    <div class="test-section">
+        <h2>Storage Overview</h2>
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="cookie-count">0</div>
+                <div class="stat-label">Cookies</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="localstorage-count">0</div>
+                <div class="stat-label">LocalStorage Items</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="sessionstorage-count">0</div>
+                <div class="stat-label">SessionStorage Items</div>
+            </div>
+        </div>
+        <button onclick="refreshAllStats()">Refresh Stats</button>
+    </div>
+
+    <!-- Cookies Section -->
+    <div class="test-section">
+        <h2>1. Cookies</h2>
+
+        <h3>Add Cookie</h3>
+        <div class="inline-form">
+            <div class="form-group">
+                <label for="cookie-name">Name</label>
+                <input type="text" id="cookie-name" placeholder="cookie_name">
+            </div>
+            <div class="form-group">
+                <label for="cookie-value">Value</label>
+                <input type="text" id="cookie-value" placeholder="cookie_value">
+            </div>
+            <button onclick="addCookie()" class="success">Add Cookie</button>
+        </div>
+
+        <h3>Current Cookies</h3>
+        <div id="cookie-viewer" class="storage-viewer empty">No cookies found</div>
+        <button onclick="refreshCookies()">Refresh</button>
+        <button onclick="clearAllCookies()" class="danger">Clear All Cookies</button>
+
+        <h3>Pre-set Test Cookies</h3>
+        <button onclick="setTestCookies()">Set Test Cookies</button>
+    </div>
+
+    <!-- LocalStorage Section -->
+    <div class="test-section">
+        <h2>2. LocalStorage</h2>
+
+        <h3>Add Item</h3>
+        <div class="inline-form">
+            <div class="form-group">
+                <label for="ls-key">Key</label>
+                <input type="text" id="ls-key" placeholder="key_name">
+            </div>
+            <div class="form-group">
+                <label for="ls-value">Value</label>
+                <input type="text" id="ls-value" placeholder="value (JSON or string)">
+            </div>
+            <button onclick="addLocalStorage()" class="success">Add</button>
+        </div>
+
+        <h3>Current LocalStorage</h3>
+        <div id="localstorage-viewer" class="storage-viewer empty">LocalStorage is empty</div>
+        <button onclick="refreshLocalStorage()">Refresh</button>
+        <button onclick="clearLocalStorage()" class="danger">Clear LocalStorage</button>
+
+        <h3>Pre-set Test Data</h3>
+        <button onclick="setTestLocalStorage()">Set Test Data</button>
+    </div>
+
+    <!-- SessionStorage Section -->
+    <div class="test-section">
+        <h2>3. SessionStorage</h2>
+
+        <h3>Add Item</h3>
+        <div class="inline-form">
+            <div class="form-group">
+                <label for="ss-key">Key</label>
+                <input type="text" id="ss-key" placeholder="key_name">
+            </div>
+            <div class="form-group">
+                <label for="ss-value">Value</label>
+                <input type="text" id="ss-value" placeholder="value (JSON or string)">
+            </div>
+            <button onclick="addSessionStorage()" class="success">Add</button>
+        </div>
+
+        <h3>Current SessionStorage</h3>
+        <div id="sessionstorage-viewer" class="storage-viewer empty">SessionStorage is empty</div>
+        <button onclick="refreshSessionStorage()">Refresh</button>
+        <button onclick="clearSessionStorage()" class="danger">Clear SessionStorage</button>
+
+        <h3>Pre-set Test Data</h3>
+        <button onclick="setTestSessionStorage()">Set Test Data</button>
+    </div>
+
+    <!-- Storage Comparison -->
+    <div class="test-section">
+        <h2>4. Storage Comparison</h2>
+        <p>This demonstrates the different persistence behaviors of each storage type.</p>
+
+        <div class="grid-2">
+            <div>
+                <h3>localStorage</h3>
+                <ul>
+                    <li>Persists until explicitly cleared</li>
+                    <li>Shared across all tabs/windows</li>
+                    <li>~5-10MB storage limit</li>
+                    <li>Synchronous API</li>
+                </ul>
+            </div>
+            <div>
+                <h3>sessionStorage</h3>
+                <ul>
+                    <li>Cleared when tab/window closes</li>
+                    <li>Separate for each tab/window</li>
+                    <li>~5-10MB storage limit</li>
+                    <li>Synchronous API</li>
+                </ul>
+            </div>
+        </div>
+
+        <h3>Test Persistence</h3>
+        <button onclick="testPersistence()">Write to All Storage Types</button>
+        <p class="hint">After clicking, check if data persists by refreshing the page or opening a new tab.</p>
+    </div>
+
+    <!-- JSON Data Test -->
+    <div class="test-section">
+        <h2>5. Complex Data Storage</h2>
+
+        <h3>Store Complex Object</h3>
+        <div class="form-group">
+            <label for="complex-json">JSON Data</label>
+            <textarea id="complex-json" rows="6" placeholder='{"name": "John", "age": 30, "preferences": {"theme": "dark"}}'></textarea>
+        </div>
+        <button onclick="storeComplexData()">Store in LocalStorage</button>
+        <button onclick="loadComplexData()">Load from LocalStorage</button>
+
+        <div id="complex-data-result" style="margin-top: 15px;"></div>
+    </div>
+
+    <!-- Bulk Operations -->
+    <div class="test-section">
+        <h2>6. Bulk Operations</h2>
+
+        <div class="grid-2">
+            <div>
+                <h3>Clear All Storage</h3>
+                <p>Clear all storage types at once.</p>
+                <button onclick="clearAllStorage()" class="danger">Clear All Storage</button>
+            </div>
+            <div>
+                <h3>Populate Test Data</h3>
+                <p>Add sample data to all storage types.</p>
+                <button onclick="populateAllStorage()" class="success">Populate All</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Storage Events -->
+    <div class="test-section">
+        <h2>7. Storage Events</h2>
+        <p>Open this page in another tab and modify localStorage to see events here.</p>
+        <div id="storage-event-log" class="event-log">Storage events from other tabs will appear here...</div>
+    </div>
+
+    <script>
+        // Event logging
+        function logEvent(message) {
+            const log = document.getElementById('event-log');
+            const timestamp = new Date().toLocaleTimeString();
+            log.textContent += `[${timestamp}] ${message}\n`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('event-log').textContent = 'Log cleared...\n';
+        }
+
+        // Cookie functions
+        function getCookies() {
+            const cookies = {};
+            document.cookie.split(';').forEach(cookie => {
+                const [name, value] = cookie.split('=').map(s => s.trim());
+                if (name) {
+                    cookies[name] = decodeURIComponent(value || '');
+                }
+            });
+            return cookies;
+        }
+
+        function setCookie(name, value, days = 7) {
+            const expires = new Date();
+            expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+            document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires.toUTCString()};path=/`;
+        }
+
+        function deleteCookie(name) {
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+        }
+
+        function addCookie() {
+            const name = document.getElementById('cookie-name').value.trim();
+            const value = document.getElementById('cookie-value').value;
+
+            if (!name) {
+                alert('Cookie name is required');
+                return;
+            }
+
+            setCookie(name, value);
+            logEvent(`Cookie added: ${name}=${value}`);
+            refreshCookies();
+            document.getElementById('cookie-name').value = '';
+            document.getElementById('cookie-value').value = '';
+        }
+
+        function refreshCookies() {
+            const viewer = document.getElementById('cookie-viewer');
+            const cookies = getCookies();
+            const count = Object.keys(cookies).length;
+
+            document.getElementById('cookie-count').textContent = count;
+
+            if (count === 0) {
+                viewer.textContent = 'No cookies found';
+                viewer.classList.add('empty');
+            } else {
+                viewer.classList.remove('empty');
+                viewer.textContent = JSON.stringify(cookies, null, 2);
+            }
+        }
+
+        function clearAllCookies() {
+            const cookies = getCookies();
+            Object.keys(cookies).forEach(name => deleteCookie(name));
+            logEvent('All cookies cleared');
+            refreshCookies();
+        }
+
+        function setTestCookies() {
+            setCookie('user_id', '12345');
+            setCookie('session_token', 'abc123xyz789');
+            setCookie('preferences', JSON.stringify({theme: 'dark', language: 'en'}));
+            setCookie('last_visit', new Date().toISOString());
+            logEvent('Test cookies set');
+            refreshCookies();
+        }
+
+        // LocalStorage functions
+        function addLocalStorage() {
+            const key = document.getElementById('ls-key').value.trim();
+            const value = document.getElementById('ls-value').value;
+
+            if (!key) {
+                alert('Key is required');
+                return;
+            }
+
+            // Try to parse as JSON, otherwise store as string
+            try {
+                const parsed = JSON.parse(value);
+                localStorage.setItem(key, JSON.stringify(parsed));
+            } catch {
+                localStorage.setItem(key, value);
+            }
+
+            logEvent(`LocalStorage added: ${key}`);
+            refreshLocalStorage();
+            document.getElementById('ls-key').value = '';
+            document.getElementById('ls-value').value = '';
+        }
+
+        function refreshLocalStorage() {
+            const viewer = document.getElementById('localstorage-viewer');
+            const data = {};
+
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                try {
+                    data[key] = JSON.parse(localStorage.getItem(key));
+                } catch {
+                    data[key] = localStorage.getItem(key);
+                }
+            }
+
+            document.getElementById('localstorage-count').textContent = localStorage.length;
+
+            if (localStorage.length === 0) {
+                viewer.textContent = 'LocalStorage is empty';
+                viewer.classList.add('empty');
+            } else {
+                viewer.classList.remove('empty');
+                viewer.textContent = JSON.stringify(data, null, 2);
+            }
+        }
+
+        function clearLocalStorage() {
+            localStorage.clear();
+            logEvent('LocalStorage cleared');
+            refreshLocalStorage();
+        }
+
+        function setTestLocalStorage() {
+            localStorage.setItem('user_settings', JSON.stringify({
+                theme: 'dark',
+                fontSize: 14,
+                notifications: true
+            }));
+            localStorage.setItem('auth_token', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...');
+            localStorage.setItem('cart_items', JSON.stringify([
+                {id: 1, name: 'Product A', quantity: 2},
+                {id: 2, name: 'Product B', quantity: 1}
+            ]));
+            localStorage.setItem('last_search', 'test query');
+            logEvent('Test localStorage data set');
+            refreshLocalStorage();
+        }
+
+        // SessionStorage functions
+        function addSessionStorage() {
+            const key = document.getElementById('ss-key').value.trim();
+            const value = document.getElementById('ss-value').value;
+
+            if (!key) {
+                alert('Key is required');
+                return;
+            }
+
+            try {
+                const parsed = JSON.parse(value);
+                sessionStorage.setItem(key, JSON.stringify(parsed));
+            } catch {
+                sessionStorage.setItem(key, value);
+            }
+
+            logEvent(`SessionStorage added: ${key}`);
+            refreshSessionStorage();
+            document.getElementById('ss-key').value = '';
+            document.getElementById('ss-value').value = '';
+        }
+
+        function refreshSessionStorage() {
+            const viewer = document.getElementById('sessionstorage-viewer');
+            const data = {};
+
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                try {
+                    data[key] = JSON.parse(sessionStorage.getItem(key));
+                } catch {
+                    data[key] = sessionStorage.getItem(key);
+                }
+            }
+
+            document.getElementById('sessionstorage-count').textContent = sessionStorage.length;
+
+            if (sessionStorage.length === 0) {
+                viewer.textContent = 'SessionStorage is empty';
+                viewer.classList.add('empty');
+            } else {
+                viewer.classList.remove('empty');
+                viewer.textContent = JSON.stringify(data, null, 2);
+            }
+        }
+
+        function clearSessionStorage() {
+            sessionStorage.clear();
+            logEvent('SessionStorage cleared');
+            refreshSessionStorage();
+        }
+
+        function setTestSessionStorage() {
+            sessionStorage.setItem('current_step', '3');
+            sessionStorage.setItem('form_data', JSON.stringify({
+                name: 'John Doe',
+                email: 'john@example.com'
+            }));
+            sessionStorage.setItem('navigation_history', JSON.stringify([
+                '/home', '/products', '/cart'
+            ]));
+            logEvent('Test sessionStorage data set');
+            refreshSessionStorage();
+        }
+
+        // Refresh all stats
+        function refreshAllStats() {
+            refreshCookies();
+            refreshLocalStorage();
+            refreshSessionStorage();
+            logEvent('All storage stats refreshed');
+        }
+
+        // Persistence test
+        function testPersistence() {
+            const timestamp = new Date().toISOString();
+
+            setCookie('persistence_test', timestamp);
+            localStorage.setItem('persistence_test', timestamp);
+            sessionStorage.setItem('persistence_test', timestamp);
+
+            logEvent(`Persistence test data written: ${timestamp}`);
+            refreshAllStats();
+        }
+
+        // Complex data storage
+        function storeComplexData() {
+            const jsonInput = document.getElementById('complex-json').value;
+            const resultDiv = document.getElementById('complex-data-result');
+
+            try {
+                const data = JSON.parse(jsonInput);
+                localStorage.setItem('complex_data', JSON.stringify(data));
+                resultDiv.innerHTML = '<p style="color: green;">Data stored successfully!</p>';
+                logEvent('Complex data stored');
+                refreshLocalStorage();
+            } catch (e) {
+                resultDiv.innerHTML = `<p style="color: red;">Invalid JSON: ${e.message}</p>`;
+                logEvent(`Complex data error: ${e.message}`);
+            }
+        }
+
+        function loadComplexData() {
+            const resultDiv = document.getElementById('complex-data-result');
+            const data = localStorage.getItem('complex_data');
+
+            if (data) {
+                try {
+                    const parsed = JSON.parse(data);
+                    document.getElementById('complex-json').value = JSON.stringify(parsed, null, 2);
+                    resultDiv.innerHTML = '<p style="color: green;">Data loaded successfully!</p>';
+                    logEvent('Complex data loaded');
+                } catch (e) {
+                    resultDiv.innerHTML = `<p style="color: red;">Error parsing data: ${e.message}</p>`;
+                }
+            } else {
+                resultDiv.innerHTML = '<p style="color: orange;">No complex data found in storage.</p>';
+            }
+        }
+
+        // Bulk operations
+        function clearAllStorage() {
+            if (confirm('This will clear ALL storage (cookies, localStorage, sessionStorage). Continue?')) {
+                clearAllCookies();
+                localStorage.clear();
+                sessionStorage.clear();
+                logEvent('All storage cleared');
+                refreshAllStats();
+            }
+        }
+
+        function populateAllStorage() {
+            setTestCookies();
+            setTestLocalStorage();
+            setTestSessionStorage();
+            logEvent('All storage types populated with test data');
+        }
+
+        // Storage event listener (for cross-tab events)
+        window.addEventListener('storage', (e) => {
+            const log = document.getElementById('storage-event-log');
+            const timestamp = new Date().toLocaleTimeString();
+            log.textContent += `[${timestamp}] Key: ${e.key}, Old: ${e.oldValue}, New: ${e.newValue}\n`;
+            log.scrollTop = log.scrollHeight;
+
+            // Refresh views
+            refreshLocalStorage();
+            refreshSessionStorage();
+        });
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            refreshAllStats();
+            logEvent('Storage test page loaded');
+
+            // Pre-fill complex JSON example
+            document.getElementById('complex-json').value = JSON.stringify({
+                user: {
+                    name: "John Doe",
+                    email: "john@example.com",
+                    age: 30
+                },
+                preferences: {
+                    theme: "dark",
+                    notifications: true,
+                    language: "en"
+                },
+                cart: [
+                    { id: 1, name: "Product A", price: 29.99 },
+                    { id: 2, name: "Product B", price: 49.99 }
+                ]
+            }, null, 2);
+        });
+    </script>
+</body>
+</html>

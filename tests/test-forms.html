@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autofill Extension Test Forms</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 10px;
+        }
+
+        h2 {
+            color: #444;
+            margin-top: 30px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+        }
+
+        h3 {
+            color: #555;
+            margin-top: 20px;
+        }
+
+        .form-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        input[type="number"],
+        input[type="tel"],
+        input[type="url"],
+        input[type="date"],
+        input[type="time"],
+        input[type="datetime-local"],
+        input[type="search"],
+        input[type="file"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+        }
+
+        input:invalid {
+            border-color: #dc3545;
+        }
+
+        input:valid {
+            border-color: #28a745;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        select[multiple] {
+            min-height: 120px;
+        }
+
+        .checkbox-group,
+        .radio-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .checkbox-group label,
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            font-weight: normal;
+            cursor: pointer;
+        }
+
+        .checkbox-group input,
+        .radio-group input {
+            margin-right: 8px;
+            width: 18px;
+            height: 18px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+        }
+
+        input[type="color"] {
+            width: 60px;
+            height: 40px;
+            padding: 2px;
+            cursor: pointer;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 14px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        button[type="submit"] {
+            background-color: #007bff;
+            color: white;
+        }
+
+        button[type="reset"] {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        button[type="button"] {
+            background-color: #28a745;
+            color: white;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .required-field::after {
+            content: " *";
+            color: #dc3545;
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 4px;
+        }
+
+        #results-display {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        #dynamic-form-container {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            min-height: 100px;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+
+        iframe {
+            width: 100%;
+            height: 300px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            font-size: 11px;
+            border-radius: 10px;
+            margin-left: 8px;
+        }
+
+        .badge-required {
+            background: #dc3545;
+            color: white;
+        }
+
+        .badge-optional {
+            background: #6c757d;
+            color: white;
+        }
+
+        #clear-results-btn {
+            background-color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <h1>Autofill Extension Test Forms</h1>
+    <p>This page contains various form elements for testing autofill functionality. Each section tests different input types and scenarios.</p>
+
+    <!-- Results Display -->
+    <div class="form-section">
+        <h2>Results Display</h2>
+        <p>Form submissions and changes will be logged here:</p>
+        <div id="results-display">Waiting for form interactions...</div>
+        <button type="button" id="clear-results-btn" onclick="clearResults()">Clear Results</button>
+    </div>
+
+    <!-- Section 1: Basic Inputs -->
+    <div class="form-section">
+        <h2>1. Basic Inputs</h2>
+        <form id="basic-inputs-form" onsubmit="return handleSubmit(event, 'basic-inputs')">
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="text-input">Text Input</label>
+                    <input type="text" id="text-input" name="text_input" placeholder="Enter text here" autocomplete="name">
+                </div>
+
+                <div class="form-group">
+                    <label for="email-input">Email Input</label>
+                    <input type="email" id="email-input" name="email_input" placeholder="email@example.com" autocomplete="email">
+                </div>
+
+                <div class="form-group">
+                    <label for="password-input">Password Input</label>
+                    <input type="password" id="password-input" name="password_input" placeholder="Enter password" autocomplete="current-password">
+                </div>
+
+                <div class="form-group">
+                    <label for="number-input">Number Input</label>
+                    <input type="number" id="number-input" name="number_input" placeholder="Enter a number" min="0" max="1000" step="1">
+                </div>
+
+                <div class="form-group">
+                    <label for="tel-input">Telephone Input</label>
+                    <input type="tel" id="tel-input" name="tel_input" placeholder="+1 (555) 123-4567" autocomplete="tel">
+                </div>
+
+                <div class="form-group">
+                    <label for="url-input">URL Input</label>
+                    <input type="url" id="url-input" name="url_input" placeholder="https://example.com" autocomplete="url">
+                </div>
+            </div>
+            <button type="submit">Submit Basic Inputs</button>
+            <button type="reset">Reset</button>
+        </form>
+    </div>
+
+    <!-- Section 2: Text Areas -->
+    <div class="form-section">
+        <h2>2. Text Areas</h2>
+        <form id="textarea-form" onsubmit="return handleSubmit(event, 'textarea')">
+            <div class="form-group">
+                <label for="textarea-single">Single Textarea</label>
+                <textarea id="textarea-single" name="textarea_single" rows="4"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="textarea-placeholder">Textarea with Placeholder</label>
+                <textarea id="textarea-placeholder" name="textarea_placeholder" rows="4" placeholder="This textarea has a placeholder. Enter your message here..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="textarea-maxlength">Textarea with Max Length (200 chars)</label>
+                <textarea id="textarea-maxlength" name="textarea_maxlength" rows="3" maxlength="200" placeholder="Maximum 200 characters allowed"></textarea>
+                <div class="help-text">Character limit: 200</div>
+            </div>
+
+            <button type="submit">Submit Textareas</button>
+            <button type="reset">Reset</button>
+        </form>
+    </div>
+
+    <!-- Section 3: Select Dropdowns -->
+    <div class="form-section">
+        <h2>3. Select Dropdowns</h2>
+        <form id="select-form" onsubmit="return handleSubmit(event, 'select')">
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="select-single">Single Select</label>
+                    <select id="select-single" name="select_single">
+                        <option value="">-- Select an option --</option>
+                        <option value="option1">Option 1</option>
+                        <option value="option2">Option 2</option>
+                        <option value="option3">Option 3</option>
+                        <option value="option4">Option 4</option>
+                        <option value="option5">Option 5</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="select-country">Country Select (with autocomplete)</label>
+                    <select id="select-country" name="select_country" autocomplete="country">
+                        <option value="">-- Select a country --</option>
+                        <option value="US">United States</option>
+                        <option value="CA">Canada</option>
+                        <option value="UK">United Kingdom</option>
+                        <option value="DE">Germany</option>
+                        <option value="FR">France</option>
+                        <option value="JP">Japan</option>
+                        <option value="AU">Australia</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="select-multiple">Multi-Select (hold Ctrl/Cmd to select multiple)</label>
+                <select id="select-multiple" name="select_multiple" multiple>
+                    <option value="red">Red</option>
+                    <option value="blue">Blue</option>
+                    <option value="green">Green</option>
+                    <option value="yellow">Yellow</option>
+                    <option value="purple">Purple</option>
+                    <option value="orange">Orange</option>
+                    <option value="pink">Pink</option>
+                    <option value="black">Black</option>
+                </select>
+            </div>
+
+            <button type="submit">Submit Selects</button>
+            <button type="reset">Reset</button>
+        </form>
+    </div>
+
+    <!-- Section 4: Checkboxes -->
+    <div class="form-section">
+        <h2>4. Checkboxes</h2>
+        <form id="checkbox-form" onsubmit="return handleSubmit(event, 'checkbox')">
+            <div class="form-group">
+                <label for="checkbox-single">Single Checkbox</label>
+                <div class="checkbox-group">
+                    <label>
+                        <input type="checkbox" id="checkbox-single" name="checkbox_single" value="agreed">
+                        I agree to the terms and conditions
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Checkbox Group - Select your interests:</label>
+                <div class="checkbox-group">
+                    <label>
+                        <input type="checkbox" id="checkbox-sports" name="interests" value="sports">
+                        Sports
+                    </label>
+                    <label>
+                        <input type="checkbox" id="checkbox-music" name="interests" value="music">
+                        Music
+                    </label>
+                    <label>
+                        <input type="checkbox" id="checkbox-movies" name="interests" value="movies">
+                        Movies
+                    </label>
+                    <label>
+                        <input type="checkbox" id="checkbox-reading" name="interests" value="reading">
+                        Reading
+                    </label>
+                    <label>
+                        <input type="checkbox" id="checkbox-gaming" name="interests" value="gaming">
+                        Gaming
+                    </label>
+                    <label>
+                        <input type="checkbox" id="checkbox-travel" name="interests" value="travel">
+                        Travel
+                    </label>
+                </div>
+            </div>
+
+            <button type="submit">Submit Checkboxes</button>
+            <button type="reset">Reset</button>
+        </form>
+    </div>
+
+    <!-- Section 5: Radio Buttons -->
+    <div class="form-section">
+        <h2>5. Radio Buttons</h2>
+        <form id="radio-form" onsubmit="return handleSubmit(event, 'radio')">
+            <div class="form-group">
+                <label>Gender:</label>
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" id="radio-male" name="gender" value="male">
+                        Male
+                    </label>
+                    <label>
+                        <input type="radio" id="radio-female" name="gender" value="female">
+                        Female
+                    </label>
+                    <label>
+                        <input type="radio" id="radio-other" name="gender" value="other">
+                        Other
+                    </label>
+                    <label>
+                        <input type="radio" id="radio-prefer-not" name="gender" value="prefer-not-to-say">
+                        Prefer not to say
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Subscription Plan:</label>
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" id="radio-free" name="plan" value="free">
+                        Free
+                    </label>
+                    <label>
+                        <input type="radio" id="radio-basic" name="plan" value="basic">
+                        Basic ($9/mo)
+                    </label>
+                    <label>
+                        <input type="radio" id="radio-pro" name="plan" value="pro">
+                        Pro ($19/mo)
+                    </label>
+                    <label>
+                        <input type="radio" id="radio-enterprise" name="plan" value="enterprise">
+                        Enterprise ($49/mo)
+                    </label>
+                </div>
+            </div>
+
+            <button type="submit">Submit Radio Buttons</button>
+            <button type="reset">Reset</button>
+        </form>
+    </div>
+
+    <!-- Section 6: Date/Time Inputs -->
+    <div class="form-section">
+        <h2>6. Date/Time Inputs</h2>
+        <form id="datetime-form" onsubmit="return handleSubmit(event, 'datetime')">
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="date-input">Date Input</label>
+                    <input type="date" id="date-input" name="date_input">
+                </div>
+
+                <div class="form-group">
+                    <label for="time-input">Time Input</label>
+                    <input type="time" id="time-input" name="time_input">
+                </div>
+
+                <div class="form-group">
+                    <label for="datetime-local-input">Datetime-Local Input</label>
+                    <input type="datetime-local" id="datetime-local-input" name="datetime_local_input">
+                </div>
+
+                <div class="form-group">
+                    <label for="month-input">Month Input</label>
+                    <input type="month" id="month-input" name="month_input">
+                </div>
+
+                <div class="form-group">
+                    <label for="week-input">Week Input</label>
+                    <input type="week" id="week-input" name="week_input">
+                </div>
+            </div>
+
+            <button type="submit">Submit Date/Time</button>
+            <button type="reset">Reset</button>
+        </form>
+    </div>
+
+    <!-- Section 7: File Inputs -->
+    <div class="form-section">
+        <h2>7. File Inputs</h2>
+        <form id="file-form" onsubmit="return handleSubmit(event, 'file')">
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="file-single">Single File Upload</label>
+                    <input type="file" id="file-single" name="file_single">
+                </div>
+
+                <div class="form-group">
+                    <label for="file-multiple">Multiple File Upload</label>
+                    <input type="file" id="file-multiple" name="file_multiple" multiple>
+                </div>
+
+                <div class="form-group">
+                    <label for="file-image">Image Files Only</label>
+                    <input type="file" id="file-image" name="file_image" accept="image/*">
+                </div>
+
+                <div class="form-group">
+                    <label for="file-pdf">PDF Files Only</label>
+                    <input type="file" id="file-pdf" name="file_pdf" accept=".pdf">
+                </div>
+            </div>
+
+            <button type="submit">Submit Files</button>
+            <button type="reset">Reset</button>
+        </form>
+    </div>
+
+    <!-- Section 8: Special Inputs -->
+    <div class="form-section">
+        <h2>8. Special Inputs</h2>
+        <form id="special-form" onsubmit="return handleSubmit(event, 'special')">
+            <div class="form-group">
+                <label for="hidden-field">Hidden Field (value: "secret-token-123")</label>
+                <input type="hidden" id="hidden-field" name="hidden_field" value="secret-token-123">
+                <div class="help-text">Hidden field is present but not visible</div>
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="range-input">Range Slider (0-100): <span id="range-value">50</span></label>
+                    <input type="range" id="range-input" name="range_input" min="0" max="100" value="50" oninput="document.getElementById('range-value').textContent = this.value">
+                </div>
+
+                <div class="form-group">
+                    <label for="color-input">Color Picker</label>
+                    <input type="color" id="color-input" name="color_input" value="#007bff">
+                </div>
+
+                <div class="form-group">
+                    <label for="search-input">Search Input</label>
+                    <input type="search" id="search-input" name="search_input" placeholder="Search...">
+                </div>
+
+                <div class="form-group">
+                    <label for="datalist-input">Input with Datalist</label>
+                    <input type="text" id="datalist-input" name="datalist_input" list="browsers" placeholder="Choose a browser">
+                    <datalist id="browsers">
+                        <option value="Chrome">
+                        <option value="Firefox">
+                        <option value="Safari">
+                        <option value="Edge">
+                        <option value="Opera">
+                    </datalist>
+                </div>
+            </div>
+
+            <button type="submit">Submit Special Inputs</button>
+            <button type="reset">Reset</button>
+        </form>
+    </div>
+
+    <!-- Section 9: Buttons -->
+    <div class="form-section">
+        <h2>9. Buttons</h2>
+        <form id="buttons-form" onsubmit="return handleSubmit(event, 'buttons')">
+            <div class="form-group">
+                <label for="button-test-input">Test Input (for button testing)</label>
+                <input type="text" id="button-test-input" name="button_test_input" value="Test value">
+            </div>
+
+            <div class="form-group">
+                <button type="submit" id="submit-button">Submit Button</button>
+                <button type="reset" id="reset-button">Reset Button</button>
+                <button type="button" id="regular-button" onclick="logResult('buttons', {action: 'Regular button clicked'})">Regular Button</button>
+            </div>
+
+            <div class="form-group">
+                <label>Input Buttons:</label><br>
+                <input type="submit" id="input-submit" value="Input Submit">
+                <input type="reset" id="input-reset" value="Input Reset">
+                <input type="button" id="input-button" value="Input Button" onclick="logResult('buttons', {action: 'Input button clicked'})">
+            </div>
+        </form>
+    </div>
+
+    <!-- Section 10: Form with Required Fields -->
+    <div class="form-section">
+        <h2>10. Form with Required Fields and Validation</h2>
+        <form id="validation-form" onsubmit="return handleSubmit(event, 'validation')">
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="required-name" class="required-field">Full Name (required)</label>
+                    <input type="text" id="required-name" name="required_name" required minlength="2" maxlength="50">
+                    <div class="help-text">2-50 characters required</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="required-email" class="required-field">Email (required)</label>
+                    <input type="email" id="required-email" name="required_email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="pattern-phone" class="required-field">Phone (pattern: XXX-XXX-XXXX)</label>
+                    <input type="tel" id="pattern-phone" name="pattern_phone" pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" required placeholder="123-456-7890">
+                    <div class="help-text">Format: 123-456-7890</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="pattern-zip">ZIP Code (5 digits)</label>
+                    <input type="text" id="pattern-zip" name="pattern_zip" pattern="[0-9]{5}" placeholder="12345">
+                    <div class="help-text">US ZIP code format</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="min-age">Age (min: 18, max: 120)</label>
+                    <input type="number" id="min-age" name="min_age" min="18" max="120">
+                </div>
+
+                <div class="form-group">
+                    <label for="required-password" class="required-field">Password (min 8 chars)</label>
+                    <input type="password" id="required-password" name="required_password" required minlength="8">
+                    <div class="help-text">Minimum 8 characters</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="required-terms" name="required_terms" required>
+                    I accept the terms and conditions <span class="badge badge-required">Required</span>
+                </label>
+            </div>
+
+            <button type="submit">Submit Validated Form</button>
+            <button type="reset">Reset</button>
+        </form>
+    </div>
+
+    <!-- Section 11: Form with Autocomplete Attributes -->
+    <div class="form-section">
+        <h2>11. Form with Autocomplete Attributes</h2>
+        <form id="autocomplete-form" onsubmit="return handleSubmit(event, 'autocomplete')" autocomplete="on">
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="auto-given-name">Given Name</label>
+                    <input type="text" id="auto-given-name" name="given_name" autocomplete="given-name">
+                </div>
+
+                <div class="form-group">
+                    <label for="auto-family-name">Family Name</label>
+                    <input type="text" id="auto-family-name" name="family_name" autocomplete="family-name">
+                </div>
+
+                <div class="form-group">
+                    <label for="auto-email">Email</label>
+                    <input type="email" id="auto-email" name="auto_email" autocomplete="email">
+                </div>
+
+                <div class="form-group">
+                    <label for="auto-tel">Phone</label>
+                    <input type="tel" id="auto-tel" name="auto_tel" autocomplete="tel">
+                </div>
+
+                <div class="form-group">
+                    <label for="auto-street">Street Address</label>
+                    <input type="text" id="auto-street" name="street" autocomplete="street-address">
+                </div>
+
+                <div class="form-group">
+                    <label for="auto-city">City</label>
+                    <input type="text" id="auto-city" name="city" autocomplete="address-level2">
+                </div>
+
+                <div class="form-group">
+                    <label for="auto-state">State</label>
+                    <input type="text" id="auto-state" name="state" autocomplete="address-level1">
+                </div>
+
+                <div class="form-group">
+                    <label for="auto-zip">ZIP Code</label>
+                    <input type="text" id="auto-zip" name="zip" autocomplete="postal-code">
+                </div>
+
+                <div class="form-group">
+                    <label for="auto-country">Country</label>
+                    <input type="text" id="auto-country" name="country" autocomplete="country-name">
+                </div>
+
+                <div class="form-group">
+                    <label for="auto-org">Organization</label>
+                    <input type="text" id="auto-org" name="organization" autocomplete="organization">
+                </div>
+
+                <div class="form-group">
+                    <label for="auto-cc-name">Credit Card Name</label>
+                    <input type="text" id="auto-cc-name" name="cc_name" autocomplete="cc-name">
+                </div>
+
+                <div class="form-group">
+                    <label for="auto-cc-number">Credit Card Number</label>
+                    <input type="text" id="auto-cc-number" name="cc_number" autocomplete="cc-number">
+                </div>
+
+                <div class="form-group">
+                    <label for="auto-cc-exp">Card Expiration</label>
+                    <input type="text" id="auto-cc-exp" name="cc_exp" autocomplete="cc-exp" placeholder="MM/YY">
+                </div>
+
+                <div class="form-group">
+                    <label for="auto-cc-csc">Card Security Code</label>
+                    <input type="text" id="auto-cc-csc" name="cc_csc" autocomplete="cc-csc">
+                </div>
+            </div>
+
+            <button type="submit">Submit Autocomplete Form</button>
+            <button type="reset">Reset</button>
+        </form>
+    </div>
+
+    <!-- Section 12: Dynamically Added Form -->
+    <div class="form-section">
+        <h2>12. Dynamically Added Form</h2>
+        <p>Click the button to dynamically add a form to the page:</p>
+        <button type="button" id="add-dynamic-form" onclick="addDynamicForm()">Add Dynamic Form</button>
+        <button type="button" onclick="removeDynamicForm()">Remove Dynamic Form</button>
+        <div id="dynamic-form-container">
+            <p style="color: #999; text-align: center;">Dynamic form will appear here...</p>
+        </div>
+    </div>
+
+    <!-- Section 13: Form in Iframe -->
+    <div class="form-section">
+        <h2>13. Form in Iframe</h2>
+        <p>This iframe contains a separate form for testing cross-frame autofill:</p>
+        <iframe id="iframe-form" srcdoc="
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: sans-serif; padding: 20px; background: #fff; }
+                    .form-group { margin-bottom: 15px; }
+                    label { display: block; margin-bottom: 5px; font-weight: 600; }
+                    input, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+                    button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+                </style>
+            </head>
+            <body>
+                <h3>Iframe Form</h3>
+                <form id='iframe-inner-form'>
+                    <div class='form-group'>
+                        <label for='iframe-name'>Name</label>
+                        <input type='text' id='iframe-name' name='iframe_name' autocomplete='name'>
+                    </div>
+                    <div class='form-group'>
+                        <label for='iframe-email'>Email</label>
+                        <input type='email' id='iframe-email' name='iframe_email' autocomplete='email'>
+                    </div>
+                    <div class='form-group'>
+                        <label for='iframe-phone'>Phone</label>
+                        <input type='tel' id='iframe-phone' name='iframe_phone' autocomplete='tel'>
+                    </div>
+                    <div class='form-group'>
+                        <label for='iframe-message'>Message</label>
+                        <textarea id='iframe-message' name='iframe_message' rows='3' style='width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;box-sizing:border-box;'></textarea>
+                    </div>
+                    <button type='submit'>Submit Iframe Form</button>
+                </form>
+                <script>
+                    document.getElementById('iframe-inner-form').addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        var data = new FormData(this);
+                        var result = {};
+                        data.forEach(function(value, key) { result[key] = value; });
+                        window.parent.postMessage({type: 'iframe-form-submit', data: result}, '*');
+                        alert('Iframe form submitted! Check parent results.');
+                    });
+                </script>
+            </body>
+            </html>
+        "></iframe>
+    </div>
+
+    <!-- Section 14: Disabled and Readonly Fields -->
+    <div class="form-section">
+        <h2>14. Disabled and Readonly Fields</h2>
+        <form id="disabled-form" onsubmit="return handleSubmit(event, 'disabled')">
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="disabled-input">Disabled Input</label>
+                    <input type="text" id="disabled-input" name="disabled_input" value="Cannot edit this" disabled>
+                </div>
+
+                <div class="form-group">
+                    <label for="readonly-input">Readonly Input</label>
+                    <input type="text" id="readonly-input" name="readonly_input" value="Can select but not edit" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label for="disabled-select">Disabled Select</label>
+                    <select id="disabled-select" name="disabled_select" disabled>
+                        <option value="option1" selected>Disabled Option</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="enabled-input">Enabled Input (for comparison)</label>
+                    <input type="text" id="enabled-input" name="enabled_input" placeholder="This one is editable">
+                </div>
+            </div>
+
+            <button type="submit">Submit</button>
+            <button type="reset">Reset</button>
+        </form>
+    </div>
+
+    <!-- Section 15: Fieldset and Legend -->
+    <div class="form-section">
+        <h2>15. Fieldset and Legend</h2>
+        <form id="fieldset-form" onsubmit="return handleSubmit(event, 'fieldset')">
+            <fieldset style="border: 2px solid #ddd; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <legend style="font-weight: bold; padding: 0 10px;">Personal Information</legend>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="fieldset-firstname">First Name</label>
+                        <input type="text" id="fieldset-firstname" name="fieldset_firstname">
+                    </div>
+                    <div class="form-group">
+                        <label for="fieldset-lastname">Last Name</label>
+                        <input type="text" id="fieldset-lastname" name="fieldset_lastname">
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset style="border: 2px solid #ddd; padding: 20px; border-radius: 8px;">
+                <legend style="font-weight: bold; padding: 0 10px;">Contact Information</legend>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="fieldset-email">Email</label>
+                        <input type="email" id="fieldset-email" name="fieldset_email">
+                    </div>
+                    <div class="form-group">
+                        <label for="fieldset-phone">Phone</label>
+                        <input type="tel" id="fieldset-phone" name="fieldset_phone">
+                    </div>
+                </div>
+            </fieldset>
+
+            <button type="submit" style="margin-top: 20px;">Submit Fieldset Form</button>
+            <button type="reset">Reset</button>
+        </form>
+    </div>
+
+    <script>
+        // Results logging
+        function logResult(formName, data) {
+            const resultsDiv = document.getElementById('results-display');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${formName}:\n${JSON.stringify(data, null, 2)}\n${'─'.repeat(50)}\n`;
+            resultsDiv.textContent = logEntry + resultsDiv.textContent;
+        }
+
+        function clearResults() {
+            document.getElementById('results-display').textContent = 'Results cleared. Waiting for form interactions...';
+        }
+
+        // Form submission handler
+        function handleSubmit(event, formName) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const data = {};
+
+            // Handle multiple values for same name (checkboxes, multi-select)
+            formData.forEach((value, key) => {
+                if (data[key]) {
+                    if (Array.isArray(data[key])) {
+                        data[key].push(value);
+                    } else {
+                        data[key] = [data[key], value];
+                    }
+                } else {
+                    data[key] = value;
+                }
+            });
+
+            logResult(formName + ' (submitted)', data);
+            return false;
+        }
+
+        // Dynamic form creation
+        function addDynamicForm() {
+            const container = document.getElementById('dynamic-form-container');
+            container.innerHTML = `
+                <form id="dynamic-form" onsubmit="return handleSubmit(event, 'dynamic')">
+                    <h3>Dynamically Added Form</h3>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="dynamic-username">Username</label>
+                            <input type="text" id="dynamic-username" name="dynamic_username" autocomplete="username">
+                        </div>
+                        <div class="form-group">
+                            <label for="dynamic-email">Email</label>
+                            <input type="email" id="dynamic-email" name="dynamic_email" autocomplete="email">
+                        </div>
+                        <div class="form-group">
+                            <label for="dynamic-password">Password</label>
+                            <input type="password" id="dynamic-password" name="dynamic_password" autocomplete="new-password">
+                        </div>
+                        <div class="form-group">
+                            <label for="dynamic-confirm">Confirm Password</label>
+                            <input type="password" id="dynamic-confirm" name="dynamic_confirm" autocomplete="new-password">
+                        </div>
+                    </div>
+                    <button type="submit">Submit Dynamic Form</button>
+                    <button type="reset">Reset</button>
+                </form>
+            `;
+            logResult('system', { message: 'Dynamic form added to page' });
+        }
+
+        function removeDynamicForm() {
+            const container = document.getElementById('dynamic-form-container');
+            container.innerHTML = '<p style="color: #999; text-align: center;">Dynamic form will appear here...</p>';
+            logResult('system', { message: 'Dynamic form removed from page' });
+        }
+
+        // Listen for iframe messages
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'iframe-form-submit') {
+                logResult('iframe-form (submitted)', event.data.data);
+            }
+        });
+
+        // Track input changes for real-time feedback
+        document.addEventListener('input', function(event) {
+            if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.tagName === 'SELECT') {
+                const form = event.target.closest('form');
+                const formName = form ? form.id : 'unknown';
+                const fieldName = event.target.name || event.target.id;
+                const value = event.target.type === 'password' ? '***hidden***' : event.target.value;
+
+                // Only log for certain form interactions to avoid spam
+                if (event.target.type === 'range' || event.target.type === 'color') {
+                    // These change frequently, so we log them
+                    logResult(formName + ' (change)', { [fieldName]: value });
+                }
+            }
+        });
+
+        // Track checkbox and radio changes
+        document.addEventListener('change', function(event) {
+            if (event.target.type === 'checkbox' || event.target.type === 'radio') {
+                const form = event.target.closest('form');
+                const formName = form ? form.id : 'unknown';
+                const fieldName = event.target.name || event.target.id;
+                logResult(formName + ' (change)', {
+                    field: fieldName,
+                    value: event.target.value,
+                    checked: event.target.checked
+                });
+            }
+        });
+
+        // Initial log
+        console.log('Autofill Extension Test Forms loaded successfully.');
+        logResult('system', { message: 'Test page loaded', timestamp: new Date().toISOString() });
+    </script>
+</body>
+</html>

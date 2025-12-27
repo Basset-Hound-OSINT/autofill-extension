@@ -1,38 +1,68 @@
 {
   "manifest_version": 3,
-  "name": "Basset Hound AutoFiller",
-  "version": "1.0",
-  "description": "Autofills forms using YAML-configured rules from a Flask server",
-  "permissions": ["scripting", "activeTab"],
-  "host_permissions": ["<all_urls>"],
+  "name": "Basset Hound Browser Automation",
+  "version": "1.0.0",
+  "description": "AI-powered browser automation extension for OSINT investigations. Connects to Basset Hound backend for automated form filling, navigation, and data extraction.",
+
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "scripting",
+    "storage",
+    "notifications",
+    "cookies",
+    "webRequest",
+    "declarativeNetRequest",
+    "declarativeNetRequestWithHostAccess",
+    "declarativeNetRequestFeedback"
+  ],
+
+  "host_permissions": [
+    "<all_urls>"
+  ],
+
   "background": {
     "service_worker": "background.js"
   },
+
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["js-yaml.min.js", "utils.js", "content.js"],
-      "run_at": "document_idle"
+      "js": [
+        "utils/logger.js",
+        "utils/form-detector.js",
+        "data/form-templates.js",
+        "content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
     }
   ],
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.svg",
+      "48": "icons/icon48.svg",
+      "128": "icons/icon128.svg"
+    },
+    "default_title": "Basset Hound Automation"
+  },
+
+  "icons": {
+    "16": "icons/icon16.svg",
+    "48": "icons/icon48.svg",
+    "128": "icons/icon128.svg"
+  },
+
   "web_accessible_resources": [
     {
-      "resources": ["js-yaml.min.js"],
+      "resources": [
+        "utils/logger.js",
+        "utils/form-detector.js",
+        "data/form-templates.js"
+      ],
       "matches": ["<all_urls>"]
     }
-  ],
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "formautofill@yourdomain.com",
-      "strict_min_version": "109.0"
-    }
-  },
-  "action": {
-    "default_popup": "popup.html"
-  },
-  "permissions": [
-    "scripting",
-    "activeTab",
-    "tabs"
   ]
 }

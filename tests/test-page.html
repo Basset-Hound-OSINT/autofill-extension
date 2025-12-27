@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Basset Hound Extension Test Page</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+
+    h1 {
+      color: #333;
+      border-bottom: 2px solid #007bff;
+      padding-bottom: 10px;
+    }
+
+    h2 {
+      color: #555;
+      margin-top: 30px;
+    }
+
+    .section {
+      background: white;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+      color: #444;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    input[type="tel"],
+    input[type="url"],
+    input[type="date"],
+    input[type="search"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+    }
+
+    button {
+      padding: 10px 20px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    button.secondary {
+      background: #6c757d;
+    }
+
+    button.secondary:hover {
+      background: #545b62;
+    }
+
+    button.danger {
+      background: #dc3545;
+    }
+
+    button.danger:hover {
+      background: #c82333;
+    }
+
+    button.success {
+      background: #28a745;
+    }
+
+    button.success:hover {
+      background: #218838;
+    }
+
+    .checkbox-group,
+    .radio-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .checkbox-group label,
+    .radio-group label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-weight: normal;
+    }
+
+    .hidden-element {
+      display: none;
+    }
+
+    .delayed-element {
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .delayed-element.visible {
+      opacity: 1;
+    }
+
+    #dynamic-content {
+      min-height: 100px;
+      border: 2px dashed #ddd;
+      padding: 20px;
+      text-align: center;
+      color: #666;
+    }
+
+    .link-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .link-list li {
+      margin: 10px 0;
+    }
+
+    .link-list a {
+      color: #007bff;
+      text-decoration: none;
+    }
+
+    .link-list a:hover {
+      text-decoration: underline;
+    }
+
+    #event-log {
+      background: #f8f9fa;
+      border: 1px solid #ddd;
+      padding: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 12px;
+    }
+
+    #event-log .event {
+      margin: 2px 0;
+      padding: 2px 5px;
+    }
+
+    #event-log .event:nth-child(even) {
+      background: #eee;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .contenteditable-box {
+      min-height: 100px;
+      border: 1px solid #ddd;
+      padding: 10px;
+      border-radius: 4px;
+    }
+
+    .contenteditable-box:focus {
+      outline: none;
+      border-color: #007bff;
+    }
+
+    .iframe-container {
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    .status-indicator.connected {
+      background: #28a745;
+    }
+
+    .status-indicator.disconnected {
+      background: #dc3545;
+    }
+
+    .test-result {
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 4px;
+    }
+
+    .test-result.pass {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .test-result.fail {
+      background: #f8d7da;
+      color: #721c24;
+    }
+  </style>
+</head>
+<body>
+  <h1>Basset Hound Extension Test Page</h1>
+  <p>This page contains various form elements and interactive components for testing the browser automation extension.</p>
+
+  <!-- Connection Status -->
+  <div class="section">
+    <h2>Extension Status</h2>
+    <p>
+      <span id="connection-status" class="status-indicator disconnected"></span>
+      <span id="connection-text">Waiting for extension...</span>
+    </p>
+  </div>
+
+  <!-- Basic Form -->
+  <div class="section">
+    <h2>Basic Form</h2>
+    <form id="basic-form" name="basicForm">
+      <div class="grid-2">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" placeholder="Enter username" data-testid="username-input">
+        </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" placeholder="Enter email" data-testid="email-input">
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" placeholder="Enter password" data-testid="password-input">
+        </div>
+        <div class="form-group">
+          <label for="confirm-password">Confirm Password</label>
+          <input type="password" id="confirm-password" name="confirmPassword" placeholder="Confirm password">
+        </div>
+      </div>
+      <div class="form-group">
+        <button type="submit" id="submit-basic" data-testid="submit-btn">Submit</button>
+        <button type="reset" class="secondary">Reset</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Advanced Form Inputs -->
+  <div class="section">
+    <h2>Advanced Form Inputs</h2>
+    <form id="advanced-form" name="advancedForm">
+      <div class="grid-2">
+        <div class="form-group">
+          <label for="phone">Phone Number</label>
+          <input type="tel" id="phone" name="phone" placeholder="(123) 456-7890">
+        </div>
+        <div class="form-group">
+          <label for="website">Website URL</label>
+          <input type="url" id="website" name="website" placeholder="https://example.com">
+        </div>
+        <div class="form-group">
+          <label for="dob">Date of Birth</label>
+          <input type="date" id="dob" name="dob">
+        </div>
+        <div class="form-group">
+          <label for="age">Age</label>
+          <input type="number" id="age" name="age" min="0" max="150" placeholder="Enter age">
+        </div>
+        <div class="form-group">
+          <label for="search">Search</label>
+          <input type="search" id="search" name="search" placeholder="Search...">
+        </div>
+        <div class="form-group">
+          <label for="range">Satisfaction (1-10)</label>
+          <input type="range" id="range" name="range" min="1" max="10" value="5">
+          <span id="range-value">5</span>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Select Dropdowns -->
+  <div class="section">
+    <h2>Select Dropdowns</h2>
+    <div class="grid-2">
+      <div class="form-group">
+        <label for="country">Country</label>
+        <select id="country" name="country" data-testid="country-select">
+          <option value="">Select a country</option>
+          <option value="us">United States</option>
+          <option value="uk">United Kingdom</option>
+          <option value="ca">Canada</option>
+          <option value="au">Australia</option>
+          <option value="de">Germany</option>
+          <option value="fr">France</option>
+          <option value="jp">Japan</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="multi-select">Multiple Select (Languages)</label>
+        <select id="multi-select" name="languages" multiple size="4">
+          <option value="en">English</option>
+          <option value="es">Spanish</option>
+          <option value="fr">French</option>
+          <option value="de">German</option>
+          <option value="zh">Chinese</option>
+          <option value="ja">Japanese</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Checkboxes and Radio Buttons -->
+  <div class="section">
+    <h2>Checkboxes and Radio Buttons</h2>
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Interests (Checkboxes)</label>
+        <div class="checkbox-group">
+          <label><input type="checkbox" name="interests" value="tech" id="interest-tech"> Technology</label>
+          <label><input type="checkbox" name="interests" value="sports" id="interest-sports"> Sports</label>
+          <label><input type="checkbox" name="interests" value="music" id="interest-music"> Music</label>
+          <label><input type="checkbox" name="interests" value="travel" id="interest-travel"> Travel</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Gender (Radio Buttons)</label>
+        <div class="radio-group">
+          <label><input type="radio" name="gender" value="male" id="gender-male"> Male</label>
+          <label><input type="radio" name="gender" value="female" id="gender-female"> Female</label>
+          <label><input type="radio" name="gender" value="other" id="gender-other"> Other</label>
+          <label><input type="radio" name="gender" value="prefer-not" id="gender-prefer-not"> Prefer not to say</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Textarea -->
+  <div class="section">
+    <h2>Textarea</h2>
+    <div class="form-group">
+      <label for="bio">Biography</label>
+      <textarea id="bio" name="bio" rows="4" placeholder="Tell us about yourself..." data-testid="bio-textarea"></textarea>
+    </div>
+  </div>
+
+  <!-- Contenteditable -->
+  <div class="section">
+    <h2>Contenteditable Element</h2>
+    <div class="form-group">
+      <label>Rich Text Editor</label>
+      <div id="rich-editor" class="contenteditable-box" contenteditable="true" data-testid="rich-editor">
+        Click here to edit...
+      </div>
+    </div>
+  </div>
+
+  <!-- Buttons Section -->
+  <div class="section">
+    <h2>Buttons</h2>
+    <button id="btn-primary" type="button">Primary Button</button>
+    <button id="btn-secondary" type="button" class="secondary">Secondary Button</button>
+    <button id="btn-success" type="button" class="success">Success Button</button>
+    <button id="btn-danger" type="button" class="danger">Danger Button</button>
+    <button id="btn-disabled" type="button" disabled>Disabled Button</button>
+    <input type="button" id="input-btn" value="Input Button">
+    <button id="btn-counter" type="button" data-count="0">Click Count: 0</button>
+  </div>
+
+  <!-- Links Section -->
+  <div class="section">
+    <h2>Links</h2>
+    <ul class="link-list">
+      <li><a href="#section1" id="link-section1">Jump to Section 1</a></li>
+      <li><a href="#section2" id="link-section2">Jump to Section 2</a></li>
+      <li><a href="https://example.com" id="link-external" target="_blank" rel="noopener">External Link</a></li>
+      <li><a href="javascript:void(0)" id="link-javascript" onclick="handleJsLink()">JavaScript Link</a></li>
+    </ul>
+  </div>
+
+  <!-- Dynamic Content -->
+  <div class="section">
+    <h2>Dynamic Content</h2>
+    <button id="btn-load-content" type="button">Load Dynamic Content</button>
+    <button id="btn-add-element" type="button" class="secondary">Add Element</button>
+    <button id="btn-remove-element" type="button" class="danger">Remove Element</button>
+    <div id="dynamic-content">
+      Dynamic content will appear here...
+    </div>
+  </div>
+
+  <!-- Delayed Element (for wait_for_element testing) -->
+  <div class="section">
+    <h2>Delayed Element Test</h2>
+    <button id="btn-show-delayed" type="button">Show Delayed Element (2s)</button>
+    <button id="btn-show-delayed-long" type="button" class="secondary">Show Delayed Element (5s)</button>
+    <div id="delayed-element" class="delayed-element hidden-element">
+      <p>This element appeared after a delay!</p>
+      <input type="text" id="delayed-input" placeholder="Delayed input field">
+    </div>
+  </div>
+
+  <!-- Hidden Form -->
+  <div class="section">
+    <h2>Hidden Form Elements</h2>
+    <form id="hidden-form">
+      <input type="hidden" id="hidden-token" name="token" value="abc123">
+      <input type="hidden" id="hidden-csrf" name="csrf" value="xyz789">
+      <div class="form-group">
+        <label for="visible-field">Visible Field</label>
+        <input type="text" id="visible-field" name="visibleField" placeholder="This is visible">
+      </div>
+    </form>
+  </div>
+
+  <!-- Form with ARIA labels -->
+  <div class="section">
+    <h2>Accessibility (ARIA) Labels</h2>
+    <div class="form-group">
+      <input type="text" id="aria-input" aria-label="Search products" placeholder="Search products...">
+    </div>
+    <div class="form-group">
+      <input type="text" id="aria-labelledby-input" aria-labelledby="custom-label" placeholder="Custom labeled input">
+      <span id="custom-label" style="display:block;margin-top:5px;color:#666;">Custom Label via aria-labelledby</span>
+    </div>
+    <button type="button" role="button" aria-label="Submit search" id="aria-btn">Search</button>
+  </div>
+
+  <!-- Scroll Sections -->
+  <div class="section" id="section1" style="min-height: 200px;">
+    <h2>Section 1</h2>
+    <p>This section is used for scroll testing. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+  </div>
+
+  <div class="section" id="section2" style="min-height: 200px;">
+    <h2>Section 2</h2>
+    <p>Another section for scroll testing. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+  </div>
+
+  <!-- Event Log -->
+  <div class="section">
+    <h2>Event Log</h2>
+    <button id="btn-clear-log" type="button" class="secondary">Clear Log</button>
+    <div id="event-log"></div>
+  </div>
+
+  <!-- Test Results Section -->
+  <div class="section">
+    <h2>Test Results</h2>
+    <div id="test-results"></div>
+  </div>
+
+  <!-- Iframe Test -->
+  <div class="section">
+    <h2>Iframe Test</h2>
+    <div class="iframe-container">
+      <iframe id="test-iframe" src="about:blank" width="100%" height="200" title="Test iframe"></iframe>
+    </div>
+  </div>
+
+  <script>
+    // Event logging utility
+    const eventLog = document.getElementById('event-log');
+    let eventCounter = 0;
+
+    function logEvent(type, details = '') {
+      eventCounter++;
+      const timestamp = new Date().toLocaleTimeString();
+      const entry = document.createElement('div');
+      entry.className = 'event';
+      entry.textContent = `[${timestamp}] #${eventCounter}: ${type}${details ? ' - ' + details : ''}`;
+      eventLog.insertBefore(entry, eventLog.firstChild);
+
+      // Keep only last 100 events
+      while (eventLog.children.length > 100) {
+        eventLog.removeChild(eventLog.lastChild);
+      }
+    }
+
+    // Clear log button
+    document.getElementById('btn-clear-log').addEventListener('click', () => {
+      eventLog.innerHTML = '';
+      eventCounter = 0;
+      logEvent('Log cleared');
+    });
+
+    // Basic form submission
+    document.getElementById('basic-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const data = Object.fromEntries(formData);
+      logEvent('Form submitted', JSON.stringify(data));
+      alert('Form submitted! Check event log.');
+    });
+
+    // Button click handlers
+    document.getElementById('btn-primary').addEventListener('click', () => {
+      logEvent('Button clicked', 'Primary');
+    });
+
+    document.getElementById('btn-secondary').addEventListener('click', () => {
+      logEvent('Button clicked', 'Secondary');
+    });
+
+    document.getElementById('btn-success').addEventListener('click', () => {
+      logEvent('Button clicked', 'Success');
+    });
+
+    document.getElementById('btn-danger').addEventListener('click', () => {
+      logEvent('Button clicked', 'Danger');
+    });
+
+    // Click counter button
+    document.getElementById('btn-counter').addEventListener('click', function() {
+      const count = parseInt(this.dataset.count) + 1;
+      this.dataset.count = count;
+      this.textContent = `Click Count: ${count}`;
+      logEvent('Counter clicked', `Count: ${count}`);
+    });
+
+    // Range slider
+    document.getElementById('range').addEventListener('input', function() {
+      document.getElementById('range-value').textContent = this.value;
+      logEvent('Range changed', `Value: ${this.value}`);
+    });
+
+    // Dynamic content buttons
+    document.getElementById('btn-load-content').addEventListener('click', () => {
+      const container = document.getElementById('dynamic-content');
+      container.innerHTML = `
+        <h3>Loaded Content</h3>
+        <p>This content was loaded dynamically at ${new Date().toLocaleTimeString()}</p>
+        <form id="dynamic-form">
+          <input type="text" id="dynamic-input" name="dynamicInput" placeholder="Dynamic input">
+          <button type="submit">Submit Dynamic Form</button>
+        </form>
+      `;
+      logEvent('Dynamic content loaded');
+
+      // Add submit handler for dynamic form
+      document.getElementById('dynamic-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        logEvent('Dynamic form submitted', document.getElementById('dynamic-input').value);
+      });
+    });
+
+    let elementCounter = 0;
+    document.getElementById('btn-add-element').addEventListener('click', () => {
+      elementCounter++;
+      const container = document.getElementById('dynamic-content');
+      const newElement = document.createElement('div');
+      newElement.id = `dynamic-element-${elementCounter}`;
+      newElement.className = 'added-element';
+      newElement.style.cssText = 'padding: 10px; margin: 5px 0; background: #e9ecef; border-radius: 4px;';
+      newElement.textContent = `Added Element #${elementCounter}`;
+      container.appendChild(newElement);
+      logEvent('Element added', `#dynamic-element-${elementCounter}`);
+    });
+
+    document.getElementById('btn-remove-element').addEventListener('click', () => {
+      const container = document.getElementById('dynamic-content');
+      const lastElement = container.querySelector('.added-element:last-child');
+      if (lastElement) {
+        const id = lastElement.id;
+        lastElement.remove();
+        logEvent('Element removed', `#${id}`);
+      } else {
+        logEvent('No element to remove');
+      }
+    });
+
+    // Delayed element buttons
+    document.getElementById('btn-show-delayed').addEventListener('click', () => {
+      const element = document.getElementById('delayed-element');
+      logEvent('Showing delayed element in 2s');
+      setTimeout(() => {
+        element.classList.remove('hidden-element');
+        element.classList.add('visible');
+        logEvent('Delayed element shown');
+      }, 2000);
+    });
+
+    document.getElementById('btn-show-delayed-long').addEventListener('click', () => {
+      const element = document.getElementById('delayed-element');
+      element.classList.add('hidden-element');
+      element.classList.remove('visible');
+      logEvent('Showing delayed element in 5s');
+      setTimeout(() => {
+        element.classList.remove('hidden-element');
+        element.classList.add('visible');
+        logEvent('Delayed element shown (long)');
+      }, 5000);
+    });
+
+    // JavaScript link handler
+    function handleJsLink() {
+      logEvent('JavaScript link clicked');
+      alert('JavaScript link clicked!');
+    }
+
+    // Track all input changes
+    document.querySelectorAll('input, textarea, select').forEach(element => {
+      element.addEventListener('change', () => {
+        logEvent('Input changed', `${element.id || element.name}: ${element.type === 'password' ? '[hidden]' : element.value}`);
+      });
+
+      element.addEventListener('focus', () => {
+        logEvent('Input focused', element.id || element.name);
+      });
+
+      element.addEventListener('blur', () => {
+        logEvent('Input blurred', element.id || element.name);
+      });
+    });
+
+    // Track contenteditable
+    document.getElementById('rich-editor').addEventListener('input', function() {
+      logEvent('Rich editor changed', this.textContent.substring(0, 50) + '...');
+    });
+
+    // Initial log entry
+    logEvent('Test page loaded', window.location.href);
+
+    // Check for extension
+    function checkExtensionConnection() {
+      const statusIndicator = document.getElementById('connection-status');
+      const statusText = document.getElementById('connection-text');
+
+      if (window.chrome && chrome.runtime && chrome.runtime.id) {
+        statusIndicator.className = 'status-indicator connected';
+        statusText.textContent = 'Extension detected';
+        logEvent('Extension detected');
+      } else {
+        statusIndicator.className = 'status-indicator disconnected';
+        statusText.textContent = 'Extension not detected (normal for standalone testing)';
+      }
+    }
+
+    // Check extension on load
+    setTimeout(checkExtensionConnection, 500);
+
+    // Expose test utilities to window for automation
+    window.testUtils = {
+      logEvent,
+      getEventLog: () => {
+        return Array.from(eventLog.children).map(el => el.textContent);
+      },
+      getFormData: (formId) => {
+        const form = document.getElementById(formId);
+        if (form) {
+          return Object.fromEntries(new FormData(form));
+        }
+        return null;
+      },
+      setTestResult: (name, passed, message = '') => {
+        const results = document.getElementById('test-results');
+        const result = document.createElement('div');
+        result.className = `test-result ${passed ? 'pass' : 'fail'}`;
+        result.textContent = `${passed ? 'PASS' : 'FAIL'}: ${name}${message ? ' - ' + message : ''}`;
+        results.appendChild(result);
+        logEvent('Test result', `${name}: ${passed ? 'PASS' : 'FAIL'}`);
+      },
+      clearTestResults: () => {
+        document.getElementById('test-results').innerHTML = '';
+      },
+      resetPage: () => {
+        document.querySelectorAll('form').forEach(form => form.reset());
+        eventLog.innerHTML = '';
+        eventCounter = 0;
+        elementCounter = 0;
+        document.getElementById('dynamic-content').innerHTML = 'Dynamic content will appear here...';
+        document.getElementById('delayed-element').classList.add('hidden-element');
+        document.getElementById('delayed-element').classList.remove('visible');
+        document.getElementById('test-results').innerHTML = '';
+        document.getElementById('btn-counter').dataset.count = '0';
+        document.getElementById('btn-counter').textContent = 'Click Count: 0';
+        logEvent('Page reset');
+      }
+    };
+
+    console.log('Test page utilities available at window.testUtils');
+  </script>
+</body>
+</html>

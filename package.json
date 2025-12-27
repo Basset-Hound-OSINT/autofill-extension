@@ -1,0 +1,77 @@
+{
+  "name": "basset-hound-autofill-extension",
+  "version": "1.0.0",
+  "description": "Chrome extension for browser automation and form autofill via WebSocket",
+  "main": "background.js",
+  "scripts": {
+    "test": "jest",
+    "test:all": "jest --testMatch '**/*.test.js'",
+    "test:unit": "jest tests/unit/",
+    "test:integration": "jest tests/integration/",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage --testMatch '**/*.test.js'",
+    "test:legacy": "node tests/integration.test.js",
+    "test:legacy:verbose": "node tests/integration.test.js --verbose",
+    "test:legacy:manual": "node tests/integration.test.js --manual",
+    "test:server": "node tests/test-server.js",
+    "test:manual": "python3 -m http.server 8080 -d tests/manual/test-pages",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "keywords": [
+    "chrome-extension",
+    "browser-automation",
+    "websocket",
+    "form-autofill",
+    "osint"
+  ],
+  "author": "Basset Hound Team",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "ws": "^8.14.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/tests/unit/**/*.test.js",
+      "**/tests/integration/**/*.test.js"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/tests/integration.test.js"
+    ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/tests/helpers/setup.js"
+    ],
+    "collectCoverageFrom": [
+      "*.js",
+      "utils/*.js",
+      "!tests/**",
+      "!node_modules/**"
+    ],
+    "coverageDirectory": "coverage",
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 60,
+        "functions": 60,
+        "lines": 60,
+        "statements": 60
+      }
+    },
+    "verbose": true,
+    "testTimeout": 10000,
+    "modulePathIgnorePatterns": [
+      "<rootDir>/tests/manual/"
+    ]
+  }
+}

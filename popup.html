@@ -2,52 +2,366 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Basset Hound AutoFiller</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Basset Hound Automation</title>
   <style>
-    body {
-      font-family: sans-serif;
-      padding: 10px;
-      width: 250px;
+    /* Reset and base styles */
+    * {
+      margin: 0;
+      padding: 0;
       box-sizing: border-box;
     }
-    h3 {
-      margin-top: 0;
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #333;
+      background-color: #f5f5f5;
+      min-width: 320px;
+      max-width: 400px;
     }
-    .field {
-      padding: 5px;
-      margin-bottom: 5px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      background-color: #f9f9f9;
-    }
-    .field.empty {
-      color: gray;
-      opacity: 0.5;
-      font-style: italic;
-    }
-    .field-type {
-      font-weight: bold;
-      margin-top: 10px;
-    }
-    button {
-      margin-top: 10px;
-      width: 100%;
-      padding: 10px;
-      background-color: #4CAF50;
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
       color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
+      padding: 16px;
+      text-align: center;
     }
+
+    .header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .header .subtitle {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    /* Main content */
+    .content {
+      padding: 16px;
+    }
+
+    /* Connection Status Section */
+    .status-section {
+      background: white;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .status-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .status-header h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #555;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #bdc3c7;
+    }
+
+    .status-dot.connected {
+      background-color: #27ae60;
+      box-shadow: 0 0 6px rgba(39, 174, 96, 0.5);
+    }
+
+    .status-dot.connecting,
+    .status-dot.reconnecting {
+      background-color: #f39c12;
+      animation: pulse 1.5s infinite;
+    }
+
+    .status-dot.disconnected,
+    .status-dot.failed {
+      background-color: #e74c3c;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .status-text {
+      font-size: 13px;
+      font-weight: 500;
+      text-transform: capitalize;
+    }
+
+    .status-details {
+      font-size: 12px;
+      color: #777;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #eee;
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    button {
+      flex: 1;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
     button:hover {
-      background-color: #45a049;
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-primary {
+      background-color: #3498db;
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background-color: #2980b9;
+    }
+
+    .btn-secondary {
+      background-color: #ecf0f1;
+      color: #333;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background-color: #bdc3c7;
+    }
+
+    .btn-danger {
+      background-color: #e74c3c;
+      color: white;
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background-color: #c0392b;
+    }
+
+    /* Task Queue Section */
+    .tasks-section {
+      background: white;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .tasks-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .tasks-header h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #555;
+    }
+
+    .task-count {
+      font-size: 12px;
+      color: #777;
+      background: #ecf0f1;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    .task-list {
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .task-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .task-item:last-child {
+      border-bottom: none;
+    }
+
+    .task-status-icon {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+    }
+
+    .task-status-icon.running {
+      color: #3498db;
+      animation: spin 1s linear infinite;
+    }
+
+    .task-status-icon.completed {
+      color: #27ae60;
+    }
+
+    .task-status-icon.failed {
+      color: #e74c3c;
+    }
+
+    .task-status-icon.pending {
+      color: #bdc3c7;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .task-info {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .task-type {
+      font-size: 13px;
+      font-weight: 500;
+      color: #333;
+    }
+
+    .task-time {
+      font-size: 11px;
+      color: #999;
+    }
+
+    .no-tasks {
+      text-align: center;
+      color: #999;
+      padding: 20px;
+      font-size: 13px;
+    }
+
+    /* Footer */
+    .footer {
+      padding: 12px 16px;
+      text-align: center;
+      font-size: 11px;
+      color: #999;
+      border-top: 1px solid #eee;
+      background: white;
+    }
+
+    .footer a {
+      color: #3498db;
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Scrollbar styling */
+    .task-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .task-list::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+
+    .task-list::-webkit-scrollbar-thumb {
+      background: #ccc;
+      border-radius: 3px;
+    }
+
+    .task-list::-webkit-scrollbar-thumb:hover {
+      background: #aaa;
     }
   </style>
 </head>
 <body>
-  <h3>Fields</h3>
-  <div id="fieldList">Loading...</div>
-  <button id="autopopulate">Autopopulate</button>
+  <!-- Header -->
+  <div class="header">
+    <h1>Basset Hound</h1>
+    <div class="subtitle">Browser Automation Extension</div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="content">
+    <!-- Connection Status -->
+    <div class="status-section">
+      <div class="status-header">
+        <h2>Connection Status</h2>
+        <div class="status-indicator">
+          <span class="status-dot" id="statusDot"></span>
+          <span class="status-text" id="statusText">Checking...</span>
+        </div>
+      </div>
+      <div class="status-details" id="statusDetails">
+        Waiting for status update...
+      </div>
+      <div class="controls">
+        <button id="connectBtn" class="btn-primary">Connect</button>
+        <button id="disconnectBtn" class="btn-secondary">Disconnect</button>
+      </div>
+    </div>
+
+    <!-- Task Queue -->
+    <div class="tasks-section">
+      <div class="tasks-header">
+        <h2>Task Queue</h2>
+        <span class="task-count" id="taskCount">0 tasks</span>
+      </div>
+      <div class="task-list" id="taskList">
+        <div class="no-tasks">No tasks in queue</div>
+      </div>
+      <div class="controls" style="margin-top: 12px;">
+        <button id="clearTasksBtn" class="btn-secondary">Clear History</button>
+        <button id="refreshBtn" class="btn-secondary">Refresh</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    Basset Hound v1.0.0 | <a href="#" id="viewLogsLink">View Logs</a>
+  </div>
+
   <script src="popup.js"></script>
 </body>
 </html>

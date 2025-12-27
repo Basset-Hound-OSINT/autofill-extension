@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basset Hound Extension Test Pages</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #718096;
+            margin-bottom: 30px;
+        }
+        .test-card {
+            display: block;
+            background: #f7fafc;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #2d3748;
+            transition: all 0.2s;
+            border-left: 4px solid #667eea;
+        }
+        .test-card:hover {
+            background: #edf2f7;
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .test-card h3 {
+            margin: 0 0 10px 0;
+            color: #667eea;
+        }
+        .test-card p {
+            margin: 0;
+            color: #718096;
+            font-size: 14px;
+        }
+        .test-card .features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .feature-tag {
+            background: #e2e8f0;
+            color: #4a5568;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .info-box {
+            background: #ebf8ff;
+            border: 1px solid #90cdf4;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .info-box h4 {
+            margin: 0 0 10px 0;
+            color: #2b6cb0;
+        }
+        .info-box p {
+            margin: 0;
+            color: #2c5282;
+            font-size: 14px;
+        }
+        .info-box code {
+            background: #bee3f8;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+            color: #a0aec0;
+            font-size: 14px;
+        }
+        .logo {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">&#128021;</div>
+        <h1>Basset Hound Extension Test Pages</h1>
+        <p class="subtitle">Manual test pages for testing browser automation features</p>
+
+        <div class="info-box">
+            <h4>Quick Start</h4>
+            <p>
+                Serve these pages locally using:
+                <code>npm run test:manual</code>
+                or
+                <code>python3 -m http.server 8080 -d tests/manual/test-pages</code>
+            </p>
+        </div>
+
+        <a href="form-test.html" class="test-card">
+            <h3>Form Filling Test</h3>
+            <p>Test form filling functionality including text inputs, selects, checkboxes, radios, dates, and file uploads.</p>
+            <div class="features">
+                <span class="feature-tag">Text Inputs</span>
+                <span class="feature-tag">Select Dropdowns</span>
+                <span class="feature-tag">Checkboxes</span>
+                <span class="feature-tag">Radio Buttons</span>
+                <span class="feature-tag">Date Inputs</span>
+                <span class="feature-tag">Textarea</span>
+                <span class="feature-tag">Form Submit</span>
+            </div>
+        </a>
+
+        <a href="navigation-test.html" class="test-card">
+            <h3>Navigation and Click Test</h3>
+            <p>Test click handling, navigation, modals, tabs, accordions, and other interactive elements.</p>
+            <div class="features">
+                <span class="feature-tag">Click Events</span>
+                <span class="feature-tag">Modal Dialogs</span>
+                <span class="feature-tag">Tab Switching</span>
+                <span class="feature-tag">Accordions</span>
+                <span class="feature-tag">Dropdowns</span>
+                <span class="feature-tag">Async Loading</span>
+            </div>
+        </a>
+
+        <a href="storage-test.html" class="test-card">
+            <h3>Storage Test</h3>
+            <p>Test cookie, localStorage, and sessionStorage read/write operations.</p>
+            <div class="features">
+                <span class="feature-tag">Cookies</span>
+                <span class="feature-tag">LocalStorage</span>
+                <span class="feature-tag">SessionStorage</span>
+                <span class="feature-tag">JSON Data</span>
+                <span class="feature-tag">Bulk Operations</span>
+            </div>
+        </a>
+
+        <div class="info-box">
+            <h4>Testing Tips</h4>
+            <p>
+                1. Load the Basset Hound extension in developer mode<br>
+                2. Start the WebSocket server: <code>npm run test:server</code><br>
+                3. Send commands to the extension via WebSocket<br>
+                4. Observe the results on these test pages
+            </p>
+        </div>
+
+        <div class="footer">
+            Basset Hound Browser Automation Extension &mdash; Test Suite
+        </div>
+    </div>
+</body>
+</html>

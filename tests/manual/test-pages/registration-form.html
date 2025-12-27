@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registration Form - Test Page</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    body {
+      max-width: 500px;
+      margin: 30px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 30px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-row {
+      display: flex;
+      gap: 15px;
+    }
+    .form-row .form-group {
+      flex: 1;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #555;
+      font-weight: 500;
+    }
+    label.required::after {
+      content: ' *';
+      color: #e53935;
+    }
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="tel"],
+    input[type="date"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #4a90d9;
+    }
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+    .radio-group, .checkbox-group {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .radio-item, .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .radio-item input, .checkbox-item input {
+      width: auto;
+    }
+    .radio-item label, .checkbox-item label {
+      margin: 0;
+      font-weight: normal;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #388e3c;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      background: #e8f5e9;
+      border: 1px solid #c8e6c9;
+      border-radius: 4px;
+      display: none;
+      white-space: pre-wrap;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .result.show {
+      display: block;
+    }
+    .error-message {
+      color: #e53935;
+      font-size: 12px;
+      margin-top: 5px;
+      display: none;
+    }
+    .error-message.show {
+      display: block;
+    }
+    input:invalid {
+      border-color: #e53935;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Create Account</h1>
+    <form id="registrationForm">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="firstName" class="required">First Name</label>
+          <input type="text" id="firstName" name="firstName" placeholder="John" required>
+        </div>
+        <div class="form-group">
+          <label for="lastName" class="required">Last Name</label>
+          <input type="text" id="lastName" name="lastName" placeholder="Doe" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="email" class="required">Email Address</label>
+        <input type="email" id="email" name="email" placeholder="john@example.com" required>
+        <div id="emailError" class="error-message">Please enter a valid email address</div>
+      </div>
+
+      <div class="form-group">
+        <label for="phone">Phone Number</label>
+        <input type="tel" id="phone" name="phone" placeholder="+1 (555) 123-4567">
+      </div>
+
+      <div class="form-group">
+        <label for="dob" class="required">Date of Birth</label>
+        <input type="date" id="dob" name="dob" required>
+      </div>
+
+      <div class="form-group">
+        <label class="required">Gender</label>
+        <div class="radio-group">
+          <div class="radio-item">
+            <input type="radio" id="genderMale" name="gender" value="male" required>
+            <label for="genderMale">Male</label>
+          </div>
+          <div class="radio-item">
+            <input type="radio" id="genderFemale" name="gender" value="female">
+            <label for="genderFemale">Female</label>
+          </div>
+          <div class="radio-item">
+            <input type="radio" id="genderOther" name="gender" value="other">
+            <label for="genderOther">Other</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="country" class="required">Country</label>
+        <select id="country" name="country" required>
+          <option value="">Select a country...</option>
+          <option value="US">United States</option>
+          <option value="UK">United Kingdom</option>
+          <option value="CA">Canada</option>
+          <option value="AU">Australia</option>
+          <option value="DE">Germany</option>
+          <option value="FR">France</option>
+          <option value="JP">Japan</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="password" class="required">Password</label>
+          <input type="password" id="password" name="password" minlength="8" required>
+        </div>
+        <div class="form-group">
+          <label for="confirmPassword" class="required">Confirm Password</label>
+          <input type="password" id="confirmPassword" name="confirmPassword" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="bio">Bio</label>
+        <textarea id="bio" name="bio" placeholder="Tell us about yourself..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Interests</label>
+        <div class="checkbox-group">
+          <div class="checkbox-item">
+            <input type="checkbox" id="interestSports" name="interests" value="sports">
+            <label for="interestSports">Sports</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="interestMusic" name="interests" value="music">
+            <label for="interestMusic">Music</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="interestTech" name="interests" value="tech">
+            <label for="interestTech">Technology</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="interestTravel" name="interests" value="travel">
+            <label for="interestTravel">Travel</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="checkbox-item">
+          <input type="checkbox" id="terms" name="terms" required>
+          <label for="terms" class="required">I agree to the Terms of Service</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="checkbox-item">
+          <input type="checkbox" id="newsletter" name="newsletter">
+          <label for="newsletter">Subscribe to newsletter</label>
+        </div>
+      </div>
+
+      <button type="submit" id="submitBtn">Create Account</button>
+    </form>
+
+    <div id="result" class="result"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('registrationForm');
+    const result = document.getElementById('result');
+
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      // Get form data
+      const formData = new FormData(form);
+      const data = {};
+
+      formData.forEach((value, key) => {
+        if (data[key]) {
+          if (!Array.isArray(data[key])) {
+            data[key] = [data[key]];
+          }
+          data[key].push(value);
+        } else {
+          data[key] = value;
+        }
+      });
+
+      // Get checkbox states
+      data.terms = document.getElementById('terms').checked;
+      data.newsletter = document.getElementById('newsletter').checked;
+
+      // Show success message
+      result.textContent = 'Registration successful!\n\nSubmitted data:\n' + JSON.stringify(data, null, 2);
+      result.className = 'result show';
+
+      console.log('Form submitted:', data);
+    });
+
+    // Password matching validation
+    document.getElementById('confirmPassword').addEventListener('input', function() {
+      const password = document.getElementById('password').value;
+      const confirm = this.value;
+
+      if (password !== confirm) {
+        this.setCustomValidity('Passwords do not match');
+      } else {
+        this.setCustomValidity('');
+      }
+    });
+  </script>
+</body>
+</html>

@@ -184,6 +184,99 @@ let wsAuthenticated = false;
 let wsSecureConnection = null;
 
 // =============================================================================
+// Global Error Handling with WebSocket Forwarding
+// =============================================================================
+
+// Queue for errors that occur before WebSocket is connected
+const pendingErrorQueue = [];
+const MAX_PENDING_ERRORS = 50;
+
+/**
+ * Send an error message via WebSocket
+ * @param {Object} errorData - The error data to send
+ */
+function sendErrorToBackend(errorData) {
+  const errorMessage = {
+    type: 'extension_error',
+    source: 'background',
+    data: errorData
+  };
+
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    try {
+      ws.send(JSON.stringify(errorMessage));
+      logger.debug('Error forwarded to backend', { message: errorData.message });
+    } catch (err) {
+      logger.error('Failed to send error to backend', { error: err.message });
+    }
+  } else {
+    // Queue error for later if WebSocket not connected
+    if (pendingErrorQueue.length < MAX_PENDING_ERRORS) {
+      pendingErrorQueue.push(errorMessage);
+      logger.debug('Error queued for later sending', { message: errorData.message, queueSize: pendingErrorQueue.length });
+    } else {
+      logger.warn('Pending error queue full, error dropped', { message: errorData.message });
+    }
+  }
+}
+
+/**
+ * Flush queued errors when WebSocket connects
+ */
+function flushPendingErrors() {
+  if (pendingErrorQueue.length === 0) return;
+
+  logger.info('Flushing pending errors', { count: pendingErrorQueue.length });
+
+  while (pendingErrorQueue.length > 0) {
+    const errorMessage = pendingErrorQueue.shift();
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      try {
+        ws.send(JSON.stringify(errorMessage));
+      } catch (err) {
+        logger.error('Failed to flush queued error', { error: err.message });
+        break;
+      }
+    } else {
+      // Put it back if connection lost during flush
+      pendingErrorQueue.unshift(errorMessage);
+      break;
+    }
+  }
+}
+
+// Global error handler for uncaught errors
+self.addEventListener('error', (event) => {
+  const errorData = {
+    message: event.message || 'Unknown error',
+    filename: event.filename || 'unknown',
+    lineno: event.lineno || 0,
+    colno: event.colno || 0,
+    stack: event.error?.stack || '',
+    timestamp: new Date().toISOString()
+  };
+
+  logger.error('Uncaught error', errorData);
+  sendErrorToBackend(errorData);
+});
+
+// Global handler for unhandled promise rejections
+self.addEventListener('unhandledrejection', (event) => {
+  const reason = event.reason;
+  const errorData = {
+    message: reason?.message || String(reason) || 'Unhandled promise rejection',
+    filename: reason?.fileName || 'unknown',
+    lineno: reason?.lineNumber || 0,
+    colno: reason?.columnNumber || 0,
+    stack: reason?.stack || '',
+    timestamp: new Date().toISOString()
+  };
+
+  logger.error('Unhandled promise rejection', errorData);
+  sendErrorToBackend(errorData);
+});
+
+// =============================================================================
 // WebSocket Connection Management
 // =============================================================================
 
@@ -293,6 +386,9 @@ function finalizeConnection() {
 
   // Start heartbeat
   startHeartbeat();
+
+  // Flush any errors that occurred before WebSocket was connected
+  flushPendingErrors();
 
   // Phase 7.2: Log WebSocket connection
   if (typeof auditLogger !== 'undefined') {
@@ -442,10 +538,22 @@ function handleWebSocketClose(event) {
  * @param {Event} error - WebSocket error event
  */
 function handleWebSocketError(error) {
-  logger.error('WebSocket error occurred', {
-    message: error.message || 'Unknown error',
-    type: error.type
-  });
+  // WebSocket error events don't contain detailed error info for security reasons
+  // Extract what information we can from the event and connection state
+  const errorDetails = {
+    eventType: error.type || 'error',
+    timestamp: error.timeStamp || Date.now(),
+    isTrusted: error.isTrusted,
+    // WebSocket connection state if available
+    wsReadyState: ws ? ws.readyState : null,
+    wsReadyStateText: ws ? ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'][ws.readyState] : null,
+    wsUrl: ws ? ws.url : null,
+    // Connection context
+    connectionState: connectionState,
+    reconnectAttempts: reconnectAttempts
+  };
+
+  logger.error('WebSocket error occurred', errorDetails);
 
   // Phase 7.2: Log WebSocket error
   if (typeof auditLogger !== 'undefined') {
@@ -6637,11 +6745,36 @@ chrome.runtime.onStartup.addListener(() => {
 // The WebSocket connection will be closed automatically when the service worker stops.
 // We handle reconnection in onStartup and when messages are received.
 
-// Handle content script notifications (ready, CAPTCHA, etc.)
+// Handle content script notifications (ready, CAPTCHA, errors, etc.)
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   const tabId = sender.tab?.id;
 
   switch (request.type) {
+    case 'content_script_error':
+      // Forward content script errors to backend via WebSocket
+      logger.error('Content script error', {
+        url: request.data?.url,
+        tabId,
+        message: request.data?.message,
+        filename: request.data?.filename,
+        lineno: request.data?.lineno
+      });
+
+      // Forward to backend using the same error forwarding mechanism
+      sendErrorToBackend({
+        message: request.data?.message || 'Unknown content script error',
+        filename: request.data?.filename || 'content.js',
+        lineno: request.data?.lineno || 0,
+        colno: request.data?.colno || 0,
+        stack: request.data?.stack || '',
+        timestamp: request.data?.timestamp || new Date().toISOString(),
+        source: 'content',
+        pageUrl: request.data?.url
+      });
+
+      sendResponse({ acknowledged: true });
+      return true;
+
     case 'content_script_ready':
       logger.debug('Content script ready', { url: request.url, tabId });
       sendResponse({ acknowledged: true });

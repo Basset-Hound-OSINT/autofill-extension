@@ -18,6 +18,68 @@ const contentLogger = new Logger({
 });
 
 // =============================================================================
+// Global Error Handlers - Forward errors to background script
+// =============================================================================
+
+/**
+ * Global error handler for uncaught exceptions
+ * Forwards error details to the background script for centralized logging
+ */
+window.onerror = function(message, filename, lineno, colno, error) {
+  try {
+    if (chrome.runtime && chrome.runtime.sendMessage) {
+      chrome.runtime.sendMessage({
+        type: 'content_script_error',
+        source: 'content',
+        data: {
+          message: String(message),
+          filename: String(filename || ''),
+          lineno: Number(lineno) || 0,
+          colno: Number(colno) || 0,
+          stack: error && error.stack ? String(error.stack) : '',
+          url: window.location.href,
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+  } catch (e) {
+    // Silently fail if chrome.runtime is unavailable
+  }
+  // Return false to allow the error to propagate to the console
+  return false;
+};
+
+/**
+ * Global handler for unhandled promise rejections
+ * Forwards rejection details to the background script for centralized logging
+ */
+window.onunhandledrejection = function(event) {
+  try {
+    if (chrome.runtime && chrome.runtime.sendMessage) {
+      const reason = event.reason;
+      const message = reason instanceof Error ? reason.message : String(reason);
+      const stack = reason instanceof Error && reason.stack ? reason.stack : '';
+
+      chrome.runtime.sendMessage({
+        type: 'content_script_error',
+        source: 'content',
+        data: {
+          message: 'Unhandled Promise Rejection: ' + message,
+          filename: '',
+          lineno: 0,
+          colno: 0,
+          stack: String(stack),
+          url: window.location.href,
+          timestamp: new Date().toISOString()
+        }
+      });
+    }
+  } catch (e) {
+    // Silently fail if chrome.runtime is unavailable
+  }
+};
+
+// =============================================================================
 // Configuration
 // =============================================================================
 

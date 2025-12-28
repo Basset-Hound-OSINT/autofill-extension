@@ -1,198 +1,46 @@
-# Basset Hound Autofill Extension - Project Continuity File
+The test server is running on the remote at 192.168.0.7:8765.
+How to Start Testing
+Option 1: Test with the Remote Server (192.168.0.7)
+Load the extension in Chrome on the remote machine:
+Open Chrome on 192.168.0.7
+Go to chrome://extensions/
+Enable "Developer mode"
+Click "Load unpacked" and select ~/Desktop/autofill-extension
+The extension will auto-connect to ws://localhost:8765/browser
+Watch the server logs:
 
-> **Purpose**: This file serves as a "session resume" document for future Claude Code conversations working on this project. Read this first when starting a new development session.
+ssh devel@192.168.0.7 'tail -f /tmp/test-server.log'
+Option 2: Test Locally
 
----
+# Start the test server locally
+cd /home/devel/autofill-extension
+npm run test:server
 
-## 1. Project Overview
+# Load extension in Chrome:
+# 1. Open chrome://extensions/
+# 2. Enable Developer mode
+# 3. Click "Load unpacked" 
+# 4. Select /home/devel/autofill-extension folder
+Option 3: Run Automated Tests
 
-**Basset Hound Autofill Extension** is a Chrome MV3 extension for browser automation via WebSocket. It enables remote control of browser actions including form filling, navigation, content extraction, cookie/storage management, and network monitoring.
-
-The extension is designed to work as part of the larger Basset Hound OSINT toolkit, providing browser automation capabilities that integrate with the main backend system.
-
----
-
-## 2. Current State (December 2024, Updated December 27 - v2.1.0)
-
-### Completed Features
-
-- **Core Functionality**
-  - WebSocket client for backend communication
-  - Form filling and form detection
-  - Page navigation
-  - Content extraction (text, HTML, screenshots)
-
-- **Enhanced Features**
-  - Cookie management (get, set, delete, list)
-  - Storage management (localStorage, sessionStorage)
-  - Network monitoring (request/response tracking)
-  - Request interception (block, modify, redirect)
-
-- **Advanced Features (Added Dec 27)**
-  - Shadow DOM support (deep querying, traversal, element interaction)
-  - iframe/frame support (detection, cross-frame messaging, content access)
-  - XPath element selection (full XPath support alongside CSS selectors)
-  - CAPTCHA detection (reCAPTCHA v2/v3, hCaptcha, Cloudflare Turnstile, FunCaptcha, Geetest)
-
-- **Testing Infrastructure**
-  - Jest unit tests for all modules
-  - Integration tests for end-to-end flows (error-handling, multi-tab)
-  - Manual test pages for browser testing
-
-- **Documentation**
-  - Comprehensive README
-  - API documentation
-  - Development roadmap (consolidated)
-  - Rsync deployment guide
-
----
-
-## 3. Key Files
-
-### Core Extension Files
-- `background.js` - Service worker with WebSocket client and command handlers
-- `content.js` - DOM interaction and form automation
-- `manifest.json` - Chrome MV3 manifest configuration
-- `popup.html` / `popup.js` - Extension popup UI
-
-### Utility Modules (`utils/`)
-- `logger.js` - Logging utility with configurable levels
-- `networkMonitor.js` - Network request/response monitoring
-- `requestInterceptor.js` - Request blocking, modification, redirection
-- `formDetector.js` - Form field detection and analysis
-- `captcha-detector.js` - CAPTCHA detection and state tracking
-
-### Tests (`tests/`)
-- `unit/` - Jest unit tests for individual modules
-- `integration/` - End-to-end integration tests
-- `manual/` - HTML test pages for browser testing
-
-### Documentation (`docs/`)
-- `ROADMAP.md` - Development phases and task status (consolidated from multiple files)
-- `RSYNC.md` - Rsync deployment commands for remote testing server
-- `API.md` - WebSocket command API reference
-
----
-
-## 4. Architecture Notes
-
-### Chrome MV3 Architecture
-- Uses **service worker** (not persistent background page)
-- Service worker may be terminated when idle; handles reconnection
-- Content script injected on all pages (`<all_urls>`) for DOM access
-
-### Communication Flow
-```
-Backend Server (ws://localhost:8765/browser)
-    |
-    | WebSocket
-    v
-background.js (Service Worker)
-    |
-    | chrome.runtime messaging
-    v
-content.js (Content Script in each tab)
-    |
-    | DOM APIs
-    v
-Web Page
-```
-
-### Key Design Decisions
-- WebSocket URL: `ws://localhost:8765/browser`
-- All commands are JSON messages with `type` and `data` fields
-- Responses include `success` boolean and `data` or `error` fields
-- Network monitoring uses `chrome.webRequest` API
-- Request interception uses declarative net request where possible
-
----
-
-## 5. Next Steps / TODOs
-
-### Phase 3: Testing Validation (COMPLETED)
-- [x] Complete integration test coverage (error-handling.test.js, multi-tab.test.js added Dec 27)
-- [ ] Validate all manual test scenarios
-- [ ] Performance testing under load
-
-### Phase 4: Advanced Features (IN PROGRESS - Major items completed Dec 27)
-- [x] Shadow DOM support for modern web components
-- [x] Frame and iframe support (get_frames, get_frame_info, execute_in_frame commands)
-- [x] Enhanced element selection (XPath support via evaluateXPath())
-- [x] CAPTCHA detection (reCAPTCHA, hCaptcha, Turnstile, FunCaptcha, Geetest)
-- [ ] Tab grouping and state tracking
-- [ ] File upload handling
-- [ ] Multi-step form support
-- [ ] Browser fingerprint randomization
-
-### Phase 5: Backend Integration
-- [ ] Integration with main basset-hound project
-- [ ] Coordination with Python backend
-- [ ] Profile data extraction workflows
-- [ ] OSINT automation pipelines
-
----
-
-## 6. How to Resume Development
-
-### Getting Oriented
-1. Read `docs/ROADMAP.md` for current task status and priorities
-2. Review recent git commits for context on latest changes
-3. Check this file for architecture overview
-
-### Development Setup
-```bash
-# Install dependencies
-npm install
-
-# Run unit tests
+# Run all tests locally
 npm test
 
-# Run tests in watch mode
-npm run test:watch
-```
+# Run only integration tests
+npm run test:integration
 
-### Manual Testing
-1. Open `chrome://extensions` in Chrome
-2. Enable "Developer mode"
-3. Click "Load unpacked" and select this extension directory
-4. Open the extension popup to verify connection status
-5. Check the service worker console for logs
+# Run with coverage
+npm run test:coverage
+Manual Test Pages
 
-### Full Integration Testing
-1. Start the WebSocket backend server (from basset-hound project)
-2. Load the extension in Chrome
-3. Extension will auto-connect to `ws://localhost:8765/browser`
-4. Send commands via the backend to test functionality
+# Serve test pages on port 8080
+npm run test:manual
 
-### Debugging Tips
-- Service worker logs: `chrome://extensions` -> "Inspect views: service worker"
-- Content script logs: Browser DevTools console on any page
-- Network monitoring: DevTools Network tab
-- Extension storage: DevTools -> Application -> Extension Storage
-
----
-
-## 7. Common Commands Reference
-
-### WebSocket Message Format
-```json
-{
-  "type": "command_name",
-  "data": {
-    "param1": "value1"
-  }
-}
-```
-
-### Key Commands
-- `navigate` - Navigate to URL
-- `fillForm` - Fill form fields
-- `extractContent` - Get page content
-- `click` - Click element
-- `getCookies` / `setCookie` - Cookie management
-- `getStorage` / `setStorage` - Storage management
-- `startNetworkMonitoring` - Begin capturing network requests
-
----
-
-*Last Updated: December 27, 2024*
+# Then open in browser:
+# http://localhost:8080/form-test.html
+# http://localhost:8080/navigation-test.html
+# http://localhost:8080/storage-test.html
+Current Status:
+Remote test server running at ws://192.168.0.7:8765/browser
+Extension synced to remote at ~/Desktop/autofill-extension
+Ready for Chrome extension to connect

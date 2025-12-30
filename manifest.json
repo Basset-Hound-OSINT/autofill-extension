@@ -16,7 +16,8 @@
     "webNavigation",
     "declarativeNetRequest",
     "declarativeNetRequestWithHostAccess",
-    "declarativeNetRequestFeedback"
+    "declarativeNetRequestFeedback",
+    "downloads"
   ],
 
   "host_permissions": [
@@ -37,6 +38,7 @@
         "utils/fingerprint-randomizer.js",
         "utils/captcha-detector.js",
         "utils/form-detector.js",
+        "utils/content-extractor.js",
         "data/form-templates.js",
         "content.js"
       ],
@@ -61,6 +63,8 @@
     "128": "icons/icon128.svg"
   },
 
+  "devtools_page": "devtools.html",
+
   "web_accessible_resources": [
     {
       "resources": [
@@ -70,6 +74,7 @@
         "utils/fingerprint-randomizer.js",
         "utils/captcha-detector.js",
         "utils/form-detector.js",
+        "utils/content-extractor.js",
         "utils/security/input-validator.js",
         "data/form-templates.js"
       ],

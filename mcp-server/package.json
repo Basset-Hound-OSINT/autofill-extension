@@ -1,0 +1,44 @@
+{
+  "name": "basset-hound-mcp-server",
+  "version": "1.0.0",
+  "description": "Model Context Protocol server for Basset Hound browser automation extension",
+  "main": "index.js",
+  "bin": {
+    "basset-hound-mcp": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "DEBUG=true node index.js",
+    "test": "node test-server.js",
+    "test:quick": "echo '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2024-11-05\",\"clientInfo\":{\"name\":\"test\",\"version\":\"1.0.0\"}}}' | node index.js",
+    "inspect": "mcp-inspector node index.js"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "browser-automation",
+    "chrome-extension",
+    "websocket",
+    "ai-agent",
+    "claude",
+    "anthropic",
+    "osint",
+    "basset-hound"
+  ],
+  "author": "Basset Hound Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/basset-hound-extension.git",
+    "directory": "mcp-server"
+  }
+}

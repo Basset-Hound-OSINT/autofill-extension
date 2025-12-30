@@ -102,7 +102,8 @@ describe('Background Service Worker', () => {
       ws.simulateMessage({ command_id: 'test-1', type: 'ping' });
 
       expect(onMessage).toHaveBeenCalled();
-      const messageData = JSON.parse(onMessage.mock.calls[0][0].data);
+      // The data is already a parsed object, not a JSON string
+      const messageData = onMessage.mock.calls[0][0].data;
       expect(messageData.command_id).toBe('test-1');
       expect(messageData.type).toBe('ping');
     });

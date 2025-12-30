@@ -7,6 +7,13 @@
  * @jest-environment jsdom
  */
 
+// Add CSS.escape polyfill for jsdom environment
+if (typeof CSS === 'undefined') {
+  global.CSS = {
+    escape: (str) => str.replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, '\\$1')
+  };
+}
+
 describe('Content Script - DOM Interactions', () => {
   // Mock Logger
   const mockLogger = {

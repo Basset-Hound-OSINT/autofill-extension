@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Basset Hound DevTools Panel</title>
+  <link rel="stylesheet" href="devtools-panel.css">
+</head>
+<body>
+  <!-- Main Container -->
+  <div class="devtools-panel">
+
+    <!-- Header Section -->
+    <header class="panel-header">
+      <div class="header-left">
+        <div class="logo-section">
+          <svg class="logo-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+            <line x1="12" y1="22.08" x2="12" y2="12"/>
+          </svg>
+          <h1>Basset Hound</h1>
+        </div>
+        <div class="status-badge" id="connectionBadge">
+          <span class="status-dot" id="statusDot"></span>
+          <span class="status-text" id="statusText">Disconnected</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="icon-btn" id="connectBtn" title="Connect to Backend">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+          </svg>
+        </button>
+        <button class="icon-btn" id="disconnectBtn" title="Disconnect">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+        <button class="icon-btn" id="settingsBtn" title="Settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v6m0 6v6m5.7-13.7-4.2 4.2m-3 3-4.2 4.2m12.4 0-4.2-4.2m-3-3-4.2-4.2"/>
+          </svg>
+        </button>
+        <button class="icon-btn" id="refreshBtn" title="Refresh">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"/>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <div class="panel-body">
+
+      <!-- Left Sidebar Navigation -->
+      <aside class="sidebar">
+        <nav class="nav-tabs">
+          <button class="nav-tab active" data-tab="overview">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/>
+              <rect x="14" y="3" width="7" height="7"/>
+              <rect x="14" y="14" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/>
+            </svg>
+            <span>Overview</span>
+          </button>
+          <button class="nav-tab" data-tab="network">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+            <span>Network</span>
+            <span class="badge" id="networkBadge">0</span>
+          </button>
+          <button class="nav-tab" data-tab="commands">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+            <span>Commands</span>
+          </button>
+          <button class="nav-tab" data-tab="tasks">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 11 12 14 22 4"/>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            </svg>
+            <span>Tasks</span>
+            <span class="badge" id="taskBadge">0</span>
+          </button>
+          <button class="nav-tab" data-tab="audit">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
+            <span>Audit Log</span>
+          </button>
+          <button class="nav-tab" data-tab="console">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="4 17 10 11 4 5"/>
+              <line x1="12" y1="19" x2="20" y2="19"/>
+            </svg>
+            <span>Console</span>
+          </button>
+        </nav>
+      </aside>
+
+      <!-- Main Content Panels -->
+      <main class="content-area">
+
+        <!-- Overview Tab -->
+        <section class="tab-content active" id="overview-tab">
+          <div class="content-header">
+            <h2>System Overview</h2>
+            <div class="header-actions">
+              <button class="btn btn-sm" id="exportStatusBtn">Export Status</button>
+            </div>
+          </div>
+
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M16 12l-4-4-4 4M12 16V8"/>
+                </svg>
+              </div>
+              <div class="metric-content">
+                <div class="metric-label">Connection Status</div>
+                <div class="metric-value" id="overviewStatus">Disconnected</div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                </svg>
+              </div>
+              <div class="metric-content">
+                <div class="metric-label">Network Requests</div>
+                <div class="metric-value" id="overviewNetworkCount">0</div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </svg>
+              </div>
+              <div class="metric-content">
+                <div class="metric-label">Active Tasks</div>
+                <div class="metric-value" id="overviewTaskCount">0</div>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+              </div>
+              <div class="metric-content">
+                <div class="metric-label">Uptime</div>
+                <div class="metric-value" id="overviewUptime">--:--:--</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-group">
+            <div class="section-card">
+              <h3>Connection Details</h3>
+              <div class="info-table">
+                <div class="info-row">
+                  <span class="info-label">WebSocket URL:</span>
+                  <span class="info-value" id="wsUrl">--</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Connection State:</span>
+                  <span class="info-value" id="wsState">--</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Reconnect Attempts:</span>
+                  <span class="info-value" id="reconnectAttempts">--</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Last Message:</span>
+                  <span class="info-value" id="lastMessage">--</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="section-card">
+              <h3>Recent Activity</h3>
+              <div class="activity-list" id="recentActivity">
+                <div class="empty-state">No recent activity</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Network Tab -->
+        <section class="tab-content" id="network-tab">
+          <div class="content-header">
+            <h2>Network Monitor</h2>
+            <div class="header-actions">
+              <button class="btn btn-sm" id="clearNetworkBtn">Clear</button>
+              <button class="btn btn-sm" id="exportNetworkBtn">Export HAR</button>
+            </div>
+          </div>
+
+          <div class="toolbar">
+            <div class="filter-group">
+              <input type="text" class="filter-input" id="networkFilter" placeholder="Filter by URL...">
+              <select class="filter-select" id="networkMethodFilter">
+                <option value="">All Methods</option>
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="DELETE">DELETE</option>
+                <option value="PATCH">PATCH</option>
+              </select>
+              <select class="filter-select" id="networkStatusFilter">
+                <option value="">All Status</option>
+                <option value="2">2xx Success</option>
+                <option value="3">3xx Redirect</option>
+                <option value="4">4xx Client Error</option>
+                <option value="5">5xx Server Error</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="network-container">
+            <div class="network-list">
+              <table class="network-table">
+                <thead>
+                  <tr>
+                    <th class="col-status">Status</th>
+                    <th class="col-method">Method</th>
+                    <th class="col-url">URL</th>
+                    <th class="col-time">Time</th>
+                    <th class="col-size">Size</th>
+                  </tr>
+                </thead>
+                <tbody id="networkTableBody">
+                  <tr class="empty-row">
+                    <td colspan="5">
+                      <div class="empty-state">No network requests captured yet</div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="network-detail" id="networkDetail">
+              <div class="empty-state">Select a request to view details</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Commands Tab -->
+        <section class="tab-content" id="commands-tab">
+          <div class="content-header">
+            <h2>Command Execution</h2>
+            <div class="header-actions">
+              <button class="btn btn-sm" id="clearCommandsBtn">Clear History</button>
+            </div>
+          </div>
+
+          <div class="command-executor">
+            <div class="command-input-section">
+              <label for="commandInput">Execute Command:</label>
+              <div class="command-input-wrapper">
+                <textarea
+                  id="commandInput"
+                  class="command-textarea"
+                  placeholder='Enter command JSON, e.g., {"type": "navigate", "url": "https://example.com"}'
+                  rows="4"
+                ></textarea>
+              </div>
+              <div class="command-actions">
+                <button class="btn btn-primary" id="executeCommandBtn">Execute</button>
+                <button class="btn btn-secondary" id="formatCommandBtn">Format JSON</button>
+              </div>
+            </div>
+
+            <div class="command-templates">
+              <h3>Command Templates</h3>
+              <div class="template-grid">
+                <button class="template-btn" data-template="navigate">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 16 16 12 12 8"/>
+                    <line x1="8" y1="12" x2="16" y2="12"/>
+                  </svg>
+                  Navigate
+                </button>
+                <button class="template-btn" data-template="click">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 11l3 3L22 4"/>
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                  </svg>
+                  Click Element
+                </button>
+                <button class="template-btn" data-template="type">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h10z"/>
+                    <line x1="9" y1="9" x2="15" y2="9"/>
+                    <line x1="9" y1="13" x2="15" y2="13"/>
+                    <line x1="9" y1="17" x2="13" y2="17"/>
+                  </svg>
+                  Type Text
+                </button>
+                <button class="template-btn" data-template="extract">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  Extract Data
+                </button>
+                <button class="template-btn" data-template="screenshot">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                  </svg>
+                  Screenshot
+                </button>
+                <button class="template-btn" data-template="wait">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  Wait
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="command-history">
+            <h3>Command History</h3>
+            <div class="history-list" id="commandHistory">
+              <div class="empty-state">No commands executed yet</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tasks Tab -->
+        <section class="tab-content" id="tasks-tab">
+          <div class="content-header">
+            <h2>Task Queue</h2>
+            <div class="header-actions">
+              <button class="btn btn-sm" id="clearTasksBtn">Clear Completed</button>
+            </div>
+          </div>
+
+          <div class="task-list" id="taskList">
+            <div class="empty-state">No tasks in queue</div>
+          </div>
+        </section>
+
+        <!-- Audit Log Tab -->
+        <section class="tab-content" id="audit-tab">
+          <div class="content-header">
+            <h2>Audit Log</h2>
+            <div class="header-actions">
+              <button class="btn btn-sm" id="clearAuditBtn">Clear</button>
+              <button class="btn btn-sm" id="exportAuditBtn">Export</button>
+            </div>
+          </div>
+
+          <div class="toolbar">
+            <div class="filter-group">
+              <input type="text" class="filter-input" id="auditFilter" placeholder="Filter logs...">
+              <select class="filter-select" id="auditLevelFilter">
+                <option value="">All Levels</option>
+                <option value="debug">Debug</option>
+                <option value="info">Info</option>
+                <option value="warn">Warning</option>
+                <option value="error">Error</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="audit-log" id="auditLog">
+            <div class="empty-state">No audit logs yet</div>
+          </div>
+        </section>
+
+        <!-- Console Tab -->
+        <section class="tab-content" id="console-tab">
+          <div class="content-header">
+            <h2>Extension Console</h2>
+            <div class="header-actions">
+              <button class="btn btn-sm" id="clearConsoleBtn">Clear</button>
+            </div>
+          </div>
+
+          <div class="console-output" id="consoleOutput">
+            <div class="empty-state">No console messages</div>
+          </div>
+
+          <div class="console-input-wrapper">
+            <input
+              type="text"
+              class="console-input"
+              id="consoleInput"
+              placeholder="Enter JavaScript command..."
+            >
+            <button class="btn btn-sm" id="executeConsoleBtn">Execute</button>
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+  </div>
+
+  <script src="devtools-panel.js"></script>
+</body>
+</html>

@@ -29,6 +29,14 @@ try {
 }
 
 try {
+  console.log('[Basset Hound] Importing network-exporter.js...');
+  importScripts('utils/network-exporter.js');
+  console.log('[Basset Hound] network-exporter.js loaded successfully');
+} catch (e) {
+  console.error('[Basset Hound] Failed to load network-exporter.js:', e.message);
+}
+
+try {
   console.log('[Basset Hound] Importing request-interceptor.js...');
   importScripts('utils/request-interceptor.js');
   console.log('[Basset Hound] request-interceptor.js loaded successfully');
@@ -164,6 +172,9 @@ const networkMonitor = new NetworkMonitor({
   captureHeaders: true,
   captureBody: false
 });
+
+// Network exporter instance
+const networkExporter = new NetworkExporter(networkMonitor);
 
 const requestInterceptor = new RequestInterceptor({
   urlPatterns: ['<all_urls>']
@@ -689,6 +700,7 @@ const commandHandlers = {
   fill_form: handleFillForm,
   click: handleClick,
   get_content: handleGetContent,
+  get_page_source: handleGetPageSource,
   screenshot: handleScreenshot,
   wait_for_element: handleWaitForElement,
   get_page_state: handleGetPageState,
@@ -878,7 +890,12 @@ const commandHandlers = {
   enable_fingerprint_protection: handleEnableFingerprintProtection,
   disable_fingerprint_protection: handleDisableFingerprintProtection,
   get_fingerprint_status: handleGetFingerprintStatus,
-  regenerate_fingerprint: handleRegenerateFingerprint
+  regenerate_fingerprint: handleRegenerateFingerprint,
+  // Network Export Commands
+  export_network_har: handleExportNetworkHAR,
+  export_network_csv: handleExportNetworkCSV,
+  save_network_log: handleSaveNetworkLog,
+  get_network_summary: handleGetNetworkSummary
 };
 
 // =============================================================================
@@ -1019,6 +1036,10 @@ async function validateCommandParams(type, params) {
           throw new ValidationError(`Invalid selector: ${selectorResult.errors[0]?.message || 'Unknown error'}`);
         }
       }
+      break;
+
+    case 'get_page_source':
+      // No validation needed - optional parameters only
       break;
 
     case 'execute_script':
@@ -1836,6 +1857,26 @@ async function handleGetContent(params) {
   return sendMessageToActiveTab({
     action: 'get_content',
     selector
+  });
+}
+
+/**
+ * Get full page source HTML
+ * @param {Object} params - { includeDoctype?: boolean, minified?: boolean }
+ */
+async function handleGetPageSource(params) {
+  const { includeDoctype = true, minified = false } = params;
+
+  logger.info('Getting page source', { includeDoctype, minified });
+
+  // Phase 7.2: Log data extraction event
+  if (typeof auditLogger !== 'undefined') {
+    auditLogger.logDataExtraction('page_source', { includeDoctype, minified });
+  }
+
+  return sendMessageToActiveTab({
+    action: 'get_page_source',
+    params: { includeDoctype, minified }
   });
 }
 
@@ -7921,6 +7962,144 @@ async function handleRegenerateFingerprint() {
     return response || { success: true };
   } catch (error) {
     throw new Error(`Failed to regenerate fingerprint: ${error.message}`);
+  }
+}
+
+// =============================================================================
+// Network Export Command Handlers
+// =============================================================================
+
+/**
+ * Export network log as HAR format
+ * @param {Object} params - Export parameters
+ * @param {string} params.urlPattern - Filter by URL pattern (regex)
+ * @param {string} params.method - Filter by HTTP method
+ * @param {string} params.type - Filter by resource type
+ * @param {boolean} params.includeContent - Include response content
+ * @returns {Object} - HAR formatted network log
+ */
+async function handleExportNetworkHAR(params = {}) {
+  logger.info('Exporting network log as HAR', params);
+
+  try {
+    const result = networkExporter.exportAsHAR({
+      urlPattern: params.urlPattern,
+      method: params.method,
+      type: params.type,
+      includeContent: params.includeContent || false
+    });
+
+    // Log to audit
+    if (typeof auditLogger !== 'undefined') {
+      auditLogger.log('network_har_exported', {
+        entryCount: result.entryCount,
+        filters: params
+      }, 'info');
+    }
+
+    return result;
+  } catch (error) {
+    logger.error('Failed to export network HAR', { error: error.message });
+    throw new Error(`Failed to export network HAR: ${error.message}`);
+  }
+}
+
+/**
+ * Export network log as CSV format
+ * @param {Object} params - Export parameters
+ * @param {string} params.urlPattern - Filter by URL pattern (regex)
+ * @param {string} params.method - Filter by HTTP method
+ * @param {string} params.type - Filter by resource type
+ * @param {Array<string>} params.fields - Fields to include in CSV
+ * @returns {Object} - CSV formatted network log
+ */
+async function handleExportNetworkCSV(params = {}) {
+  logger.info('Exporting network log as CSV', params);
+
+  try {
+    const result = networkExporter.exportAsCSV({
+      urlPattern: params.urlPattern,
+      method: params.method,
+      type: params.type,
+      fields: params.fields
+    });
+
+    // Log to audit
+    if (typeof auditLogger !== 'undefined') {
+      auditLogger.log('network_csv_exported', {
+        rowCount: result.rowCount,
+        fields: result.fields
+      }, 'info');
+    }
+
+    return result;
+  } catch (error) {
+    logger.error('Failed to export network CSV', { error: error.message });
+    throw new Error(`Failed to export network CSV: ${error.message}`);
+  }
+}
+
+/**
+ * Save network log to file
+ * @param {Object} params - Save parameters
+ * @param {string} params.format - Export format ('har', 'csv', 'json')
+ * @param {string} params.filename - Filename (auto-generated if not provided)
+ * @param {Object} params.filterOptions - Filter options for export
+ * @returns {Promise<Object>} - Save result with download info
+ */
+async function handleSaveNetworkLog(params = {}) {
+  logger.info('Saving network log to file', params);
+
+  try {
+    const result = await networkExporter.saveNetworkLog({
+      format: params.format || 'json',
+      filename: params.filename,
+      filterOptions: params.filterOptions || {}
+    });
+
+    // Log to audit
+    if (typeof auditLogger !== 'undefined') {
+      auditLogger.log('network_log_saved', {
+        filename: result.filename,
+        format: result.format,
+        size: result.size
+      }, 'info');
+    }
+
+    return result;
+  } catch (error) {
+    logger.error('Failed to save network log', { error: error.message });
+    throw new Error(`Failed to save network log: ${error.message}`);
+  }
+}
+
+/**
+ * Get network summary statistics
+ * @param {Object} params - Summary parameters
+ * @param {string} params.urlPattern - Filter by URL pattern
+ * @param {string} params.groupBy - Group statistics by field ('method', 'type', 'domain', 'status')
+ * @returns {Object} - Network summary statistics
+ */
+async function handleGetNetworkSummary(params = {}) {
+  logger.info('Getting network summary', params);
+
+  try {
+    const result = networkExporter.getNetworkSummary({
+      urlPattern: params.urlPattern,
+      groupBy: params.groupBy
+    });
+
+    // Log to audit
+    if (typeof auditLogger !== 'undefined') {
+      auditLogger.log('network_summary_retrieved', {
+        totalRequests: result.summary?.overview?.totalRequests
+      }, 'info');
+    }
+
+    return result;
+  } catch (error) {
+    logger.error('Failed to get network summary', { error: error.message });
+    throw new Error(`Failed to get network summary: ${error.message}`);
   }
 }
 

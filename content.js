@@ -109,6 +109,10 @@ let templateMapper = null;
 // RateLimiterManager is loaded via manifest.json content_scripts
 let contentRateLimiter = null;
 
+// Content extractor for advanced content extraction
+// ContentExtractor is loaded via manifest.json content_scripts
+let contentExtractor = null;
+
 // Initialize form utilities when available
 function initFormUtilities() {
   if (typeof FormDetector !== 'undefined' && !formDetector) {
@@ -126,6 +130,10 @@ function initFormUtilities() {
   if (typeof RateLimiterManager !== 'undefined' && !contentRateLimiter) {
     contentRateLimiter = new RateLimiterManager();
     contentLogger.debug('RateLimiterManager initialized');
+  }
+  if (typeof ContentExtractor !== 'undefined' && !contentExtractor) {
+    contentExtractor = new ContentExtractor(document);
+    contentLogger.debug('ContentExtractor initialized');
   }
 }
 
@@ -172,6 +180,9 @@ async function handleMessage(request) {
 
     case 'get_content':
       return handleGetContent(request.selector);
+
+    case 'get_page_source':
+      return handleGetPageSource(request.params);
 
     case 'get_page_state':
       return handleGetPageState();
@@ -369,6 +380,28 @@ async function handleMessage(request) {
 
     case 'regenerate_fingerprint':
       return handleRegenerateFingerprintProfiles();
+
+    // Content Extraction Commands
+    case 'extract_tables':
+      return handleExtractTables(request.params);
+
+    case 'extract_links':
+      return handleExtractLinks(request.params);
+
+    case 'extract_images':
+      return handleExtractImages(request.params);
+
+    case 'extract_structured_data':
+      return handleExtractStructuredData(request.params);
+
+    case 'extract_metadata':
+      return handleExtractMetadata(request.params);
+
+    case 'extract_text_content':
+      return handleExtractTextContent(request.params);
+
+    case 'download_resources':
+      return handleDownloadResources(request.params);
 
     default:
       throw new Error(`Unknown action: ${request.action}`);
@@ -591,6 +624,45 @@ async function handleGetContent(selector) {
     };
   } catch (error) {
     contentLogger.error('Failed to get content', { selector, error: error.message });
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get full page source HTML including DOCTYPE and head
+ * @param {Object} params - { includeDoctype?: boolean, minified?: boolean }
+ * @returns {Promise<Object>} - Full HTML source
+ */
+async function handleGetPageSource(params = {}) {
+  contentLogger.info('Getting page source', params);
+
+  try {
+    const { includeDoctype = true, minified = false } = params;
+
+    // Get the full HTML including DOCTYPE
+    let html = document.documentElement.outerHTML;
+
+    // Add DOCTYPE if requested
+    if (includeDoctype && document.doctype) {
+      const doctype = new XMLSerializer().serializeToString(document.doctype);
+      html = doctype + '\n' + html;
+    }
+
+    // Minify if requested
+    if (minified) {
+      html = html.replace(/>\s+</g, '><').trim();
+    }
+
+    return {
+      success: true,
+      source: html,
+      url: window.location.href,
+      title: document.title,
+      size: new Blob([html]).size,
+      encoding: document.characterSet || document.charset
+    };
+  } catch (error) {
+    contentLogger.error('Failed to get page source', { error: error.message });
     return { success: false, error: error.message };
   }
 }
@@ -7913,6 +7985,167 @@ function handleRegenerateFingerprintProfiles() {
     }
   } catch (error) {
     contentLogger.error('Failed to regenerate fingerprint profiles', { error: error.message });
+    return { success: false, error: error.message };
+  }
+}
+
+// =============================================================================
+// Content Extraction Handlers
+// =============================================================================
+
+/**
+ * Extract all HTML tables with data
+ * @param {Object} params - Extraction parameters
+ * @returns {Object} Extracted tables data
+ */
+async function handleExtractTables(params = {}) {
+  try {
+    if (!contentExtractor) {
+      contentExtractor = new ContentExtractor(document);
+    }
+
+    contentLogger.info('Extracting tables', params);
+    const result = contentExtractor.extractTables(params);
+
+    contentLogger.debug('Tables extracted', { count: result.count });
+    return result;
+  } catch (error) {
+    contentLogger.error('Failed to extract tables', { error: error.message });
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Extract all links with metadata
+ * @param {Object} params - Extraction parameters
+ * @returns {Object} Extracted links data
+ */
+async function handleExtractLinks(params = {}) {
+  try {
+    if (!contentExtractor) {
+      contentExtractor = new ContentExtractor(document);
+    }
+
+    contentLogger.info('Extracting links', params);
+    const result = contentExtractor.extractLinks(params);
+
+    contentLogger.debug('Links extracted', { count: result.count });
+    return result;
+  } catch (error) {
+    contentLogger.error('Failed to extract links', { error: error.message });
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Extract all images with metadata
+ * @param {Object} params - Extraction parameters
+ * @returns {Object} Extracted images data
+ */
+async function handleExtractImages(params = {}) {
+  try {
+    if (!contentExtractor) {
+      contentExtractor = new ContentExtractor(document);
+    }
+
+    contentLogger.info('Extracting images', params);
+    const result = contentExtractor.extractImages(params);
+
+    contentLogger.debug('Images extracted', { count: result.count });
+    return result;
+  } catch (error) {
+    contentLogger.error('Failed to extract images', { error: error.message });
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Extract structured data (JSON-LD, Microdata, RDFa)
+ * @param {Object} params - Extraction parameters
+ * @returns {Object} Extracted structured data
+ */
+async function handleExtractStructuredData(params = {}) {
+  try {
+    if (!contentExtractor) {
+      contentExtractor = new ContentExtractor(document);
+    }
+
+    contentLogger.info('Extracting structured data', params);
+    const result = contentExtractor.extractStructuredData(params);
+
+    contentLogger.debug('Structured data extracted');
+    return result;
+  } catch (error) {
+    contentLogger.error('Failed to extract structured data', { error: error.message });
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Extract metadata (meta tags, Open Graph, Twitter Cards)
+ * @param {Object} params - Extraction parameters
+ * @returns {Object} Extracted metadata
+ */
+async function handleExtractMetadata(params = {}) {
+  try {
+    if (!contentExtractor) {
+      contentExtractor = new ContentExtractor(document);
+    }
+
+    contentLogger.info('Extracting metadata', params);
+    const result = contentExtractor.extractMetadata(params);
+
+    contentLogger.debug('Metadata extracted');
+    return result;
+  } catch (error) {
+    contentLogger.error('Failed to extract metadata', { error: error.message });
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Extract clean text content without HTML markup
+ * @param {Object} params - Extraction parameters
+ * @returns {Object} Extracted text content
+ */
+async function handleExtractTextContent(params = {}) {
+  try {
+    if (!contentExtractor) {
+      contentExtractor = new ContentExtractor(document);
+    }
+
+    contentLogger.info('Extracting text content', params);
+    const result = contentExtractor.extractTextContent(params);
+
+    contentLogger.debug('Text content extracted', { length: result.length, wordCount: result.wordCount });
+    return result;
+  } catch (error) {
+    contentLogger.error('Failed to extract text content', { error: error.message });
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Download page resources (images, CSS, JS)
+ * @param {Object} params - Download parameters
+ * @returns {Promise<Object>} Download results
+ */
+async function handleDownloadResources(params = {}) {
+  try {
+    if (!contentExtractor) {
+      contentExtractor = new ContentExtractor(document);
+    }
+
+    contentLogger.info('Downloading resources', params);
+    const result = await contentExtractor.downloadResources(params);
+
+    contentLogger.debug('Resources downloaded', {
+      downloaded: result.downloadedCount,
+      failed: result.failedCount
+    });
+    return result;
+  } catch (error) {
+    contentLogger.error('Failed to download resources', { error: error.message });
     return { success: false, error: error.message };
   }
 }

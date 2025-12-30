@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "basset-hound": {
+      "command": "node",
+      "args": ["/home/devel/autofill-extension/mcp-server/index.js"],
+      "env": {
+        "WS_URL": "ws://localhost:8765",
+        "DEBUG": "false",
+        "COMMAND_TIMEOUT": "30000",
+        "RECONNECT_DELAY": "5000",
+        "MAX_RECONNECT_ATTEMPTS": "10"
+      }
+    }
+  }
+}

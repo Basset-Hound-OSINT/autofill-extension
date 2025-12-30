@@ -627,6 +627,26 @@ const getMockStorageData = (area) => {
 };
 
 /**
+ * Simulate a webRequest event and collect results from all listeners
+ * This allows tests to verify what interceptors return
+ */
+const simulateWebRequest = (eventName, details) => {
+  const listeners = mockListeners[eventName] || [];
+  let result = {};
+
+  for (const listener of listeners) {
+    const callback = typeof listener === 'function' ? listener : listener.callback;
+    if (callback) {
+      const listenerResult = callback(details) || {};
+      // Merge results - later listeners can override earlier ones
+      result = { ...result, ...listenerResult };
+    }
+  }
+
+  return result;
+};
+
+/**
  * Setup Chrome mock in global scope
  */
 const setupChromeMock = () => {
@@ -645,6 +665,7 @@ module.exports = {
   createWebRequestMock,
   resetMocks,
   triggerListener,
+  simulateWebRequest,
   addMockCookie,
   addMockTab,
   setMockStorageData,

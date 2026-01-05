@@ -103,6 +103,18 @@ try {
 }
 
 try {
+  console.log('[Basset Hound] Importing Phase 8 OSINT data ingestion modules...');
+  importScripts('utils/data-pipeline/field-detector.js');
+  importScripts('utils/data-pipeline/verifier.js');
+  importScripts('utils/data-pipeline/provenance.js');
+  importScripts('utils/ui/ingest-panel.js');
+  importScripts('utils/ui/element-picker.js');
+  console.log('[Basset Hound] Phase 8 OSINT modules loaded successfully');
+} catch (e) {
+  console.error('[Basset Hound] Failed to load Phase 8 OSINT modules:', e.message);
+}
+
+try {
   console.log('[Basset Hound] Importing agent modules...');
   importScripts('utils/agent/callbacks.js');
   importScripts('utils/agent/message-schema.js');
@@ -895,7 +907,13 @@ const commandHandlers = {
   export_network_har: handleExportNetworkHAR,
   export_network_csv: handleExportNetworkCSV,
   save_network_log: handleSaveNetworkLog,
-  get_network_summary: handleGetNetworkSummary
+  get_network_summary: handleGetNetworkSummary,
+  // Phase 8 OSINT Data Ingestion Commands
+  detect_osint: handleDetectOsint,
+  verify_data: handleVerifyData,
+  capture_provenance: handleCaptureProvenance,
+  start_element_picker: handleStartElementPicker,
+  ingest_data: handleIngestData
 };
 
 // =============================================================================
@@ -8100,6 +8118,356 @@ async function handleGetNetworkSummary(params = {}) {
   } catch (error) {
     logger.error('Failed to get network summary', { error: error.message });
     throw new Error(`Failed to get network summary: ${error.message}`);
+  }
+}
+
+// =============================================================================
+// Phase 8 OSINT Data Ingestion Command Handlers
+// =============================================================================
+
+/**
+ * Detect OSINT data on the current page
+ * @param {Object} params - Detection parameters
+ * @param {Array<string>} params.types - Types to detect (e.g., 'email', 'phone', 'crypto_btc')
+ * @param {boolean} params.excludeSensitive - Exclude sensitive data types (default: false)
+ * @param {number} params.contextLength - Characters of context to capture (default: 50)
+ * @param {boolean} params.highlight - Whether to highlight findings on the page (default: false)
+ * @returns {Promise<Object>} - Detection result with findings
+ */
+async function handleDetectOsint(params = {}) {
+  logger.info('Detecting OSINT data on page', params);
+
+  try {
+    // Send message to content script to perform detection
+    const result = await sendMessageToActiveTab({
+      action: 'detect_osint',
+      types: params.types,
+      excludeSensitive: params.excludeSensitive || false,
+      contextLength: params.contextLength || 50,
+      highlight: params.highlight || false
+    });
+
+    // Log to audit
+    if (typeof auditLogger !== 'undefined') {
+      auditLogger.log('osint_detection_performed', {
+        findingsCount: result?.findings?.length || 0,
+        types: params.types
+      }, 'info');
+    }
+
+    return {
+      success: true,
+      command: 'detect_osint',
+      findings: result?.findings || [],
+      summary: result?.summary || {},
+      stats: result?.stats || {}
+    };
+  } catch (error) {
+    logger.error('Failed to detect OSINT data', { error: error.message });
+    throw new Error(`Failed to detect OSINT data: ${error.message}`);
+  }
+}
+
+/**
+ * Verify a piece of data (email, phone, crypto address, etc.)
+ * @param {Object} params - Verification parameters
+ * @param {string} params.type - Data type ('email', 'phone', 'crypto', 'ip', 'domain', 'url', 'username')
+ * @param {string} params.value - Value to verify
+ * @param {Object} params.options - Type-specific verification options
+ * @returns {Promise<Object>} - Verification result
+ */
+async function handleVerifyData(params = {}) {
+  const { type, value, options = {} } = params;
+
+  logger.info('Verifying data', { type, valueLength: value?.length });
+
+  if (!type) {
+    throw new Error('Data type is required for verification');
+  }
+
+  if (!value) {
+    throw new Error('Value is required for verification');
+  }
+
+  try {
+    // Use the DataVerifier class if available
+    if (typeof DataVerifier !== 'undefined') {
+      const verifier = new DataVerifier({
+        logger: logger.child('DataVerifier'),
+        strictMode: options.strictMode || false
+      });
+
+      const result = await verifier.verify(type, value, options);
+
+      // Log to audit
+      if (typeof auditLogger !== 'undefined') {
+        auditLogger.log('data_verification_performed', {
+          type,
+          plausible: result.plausible,
+          valid: result.valid
+        }, 'info');
+      }
+
+      return {
+        success: true,
+        command: 'verify_data',
+        type,
+        value,
+        ...result
+      };
+    }
+
+    // Fallback: send to content script
+    const result = await sendMessageToActiveTab({
+      action: 'verify_data',
+      type,
+      value,
+      options
+    });
+
+    return {
+      success: true,
+      command: 'verify_data',
+      ...result
+    };
+  } catch (error) {
+    logger.error('Failed to verify data', { error: error.message, type });
+    throw new Error(`Failed to verify data: ${error.message}`);
+  }
+}
+
+/**
+ * Capture provenance for the current page
+ * @param {Object} params - Capture parameters
+ * @param {string} params.sourceType - Override detected source type
+ * @param {string} params.captureMethod - Capture method identifier
+ * @param {boolean} params.includeViewport - Include viewport information (default: true)
+ * @param {boolean} params.includeUserAgent - Include user agent (default: true)
+ * @param {string} params.selector - Optional element selector for element-specific provenance
+ * @param {Object} params.additionalMeta - Additional metadata to include
+ * @returns {Promise<Object>} - Provenance data
+ */
+async function handleCaptureProvenance(params = {}) {
+  logger.info('Capturing provenance', params);
+
+  try {
+    // Send message to content script to capture provenance
+    const result = await sendMessageToActiveTab({
+      action: 'capture_provenance',
+      sourceType: params.sourceType,
+      captureMethod: params.captureMethod || 'background_command',
+      includeViewport: params.includeViewport !== false,
+      includeUserAgent: params.includeUserAgent !== false,
+      selector: params.selector,
+      additionalMeta: params.additionalMeta || {}
+    });
+
+    // Log to audit
+    if (typeof auditLogger !== 'undefined') {
+      auditLogger.log('provenance_captured', {
+        sourceType: result?.provenance?.source_type,
+        sourceUrl: result?.provenance?.source_url
+      }, 'info');
+    }
+
+    return {
+      success: true,
+      command: 'capture_provenance',
+      provenance: result?.provenance || {}
+    };
+  } catch (error) {
+    logger.error('Failed to capture provenance', { error: error.message });
+    throw new Error(`Failed to capture provenance: ${error.message}`);
+  }
+}
+
+/**
+ * Start element picker mode for manual OSINT data selection
+ * @param {Object} params - Picker parameters
+ * @param {boolean} params.multiSelect - Allow multiple selections (default: true)
+ * @param {boolean} params.autoDetect - Auto-detect OSINT data in selected elements (default: true)
+ * @returns {Promise<Object>} - Picker started result (actual selections come via callback/message)
+ */
+async function handleStartElementPicker(params = {}) {
+  logger.info('Starting element picker', params);
+
+  try {
+    // Send message to content script to start element picker
+    const result = await sendMessageToActiveTab({
+      action: 'start_element_picker',
+      multiSelect: params.multiSelect !== false,
+      autoDetect: params.autoDetect !== false
+    });
+
+    // Log to audit
+    if (typeof auditLogger !== 'undefined') {
+      auditLogger.log('element_picker_started', {
+        multiSelect: params.multiSelect !== false
+      }, 'info');
+    }
+
+    return {
+      success: true,
+      command: 'start_element_picker',
+      started: result?.started || true,
+      message: 'Element picker mode activated. Click on elements to select OSINT data.'
+    };
+  } catch (error) {
+    logger.error('Failed to start element picker', { error: error.message });
+    throw new Error(`Failed to start element picker: ${error.message}`);
+  }
+}
+
+/**
+ * Ingest selected OSINT data to basset-hound backend
+ * @param {Object} params - Ingestion parameters
+ * @param {Array<Object>} params.items - Items to ingest (each with type, value, metadata)
+ * @param {Object} params.provenance - Provenance data for all items (or per-item in items)
+ * @param {boolean} params.verify - Verify items before ingestion (default: true)
+ * @param {boolean} params.skipDuplicates - Skip items that already exist (default: true)
+ * @returns {Promise<Object>} - Ingestion result
+ */
+async function handleIngestData(params = {}) {
+  const { items, provenance, verify = true, skipDuplicates = true } = params;
+
+  logger.info('Ingesting OSINT data', { itemCount: items?.length });
+
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    throw new Error('Items array is required and must not be empty');
+  }
+
+  try {
+    const results = {
+      success: true,
+      command: 'ingest_data',
+      ingested: [],
+      failed: [],
+      skipped: [],
+      total: items.length
+    };
+
+    // Get verifier instance if verification is enabled
+    let verifier = null;
+    if (verify && typeof DataVerifier !== 'undefined') {
+      verifier = new DataVerifier({
+        logger: logger.child('DataVerifier')
+      });
+    }
+
+    // Get basset-hound sync instance
+    const sync = typeof getBassetHoundSync !== 'undefined' ? getBassetHoundSync() : null;
+
+    for (const item of items) {
+      try {
+        // Validate item structure
+        if (!item.type || !item.value) {
+          results.failed.push({
+            item,
+            error: 'Item must have type and value'
+          });
+          continue;
+        }
+
+        // Verify if enabled
+        if (verifier) {
+          const verifyResult = await verifier.verify(item.type, item.value);
+          if (!verifyResult.plausible) {
+            results.failed.push({
+              item,
+              error: 'Verification failed',
+              verificationResult: verifyResult
+            });
+            continue;
+          }
+          item.verification = verifyResult;
+        }
+
+        // Create entity for ingestion
+        const entityData = {
+          id: `orphan_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          type: 'orphan',
+          data: {
+            identifier_type: item.type,
+            identifier_value: item.value,
+            metadata: item.metadata || {},
+            provenance: item.provenance || provenance || {}
+          }
+        };
+
+        // Sync to basset-hound if available
+        if (sync && sync.isConnected()) {
+          const syncResult = await sync.syncEntity(entityData);
+          if (syncResult.success) {
+            results.ingested.push({
+              item,
+              entityId: entityData.id,
+              synced: true
+            });
+          } else if (syncResult.queued) {
+            results.ingested.push({
+              item,
+              entityId: entityData.id,
+              synced: false,
+              queued: true
+            });
+          } else {
+            results.failed.push({
+              item,
+              error: syncResult.error || 'Sync failed'
+            });
+          }
+        } else {
+          // Store locally using entity manager
+          if (typeof createEntity !== 'undefined') {
+            const createResult = createEntity('orphan', entityData.data);
+            if (createResult.success) {
+              results.ingested.push({
+                item,
+                entityId: createResult.entity.id,
+                synced: false,
+                storedLocally: true
+              });
+            } else {
+              results.failed.push({
+                item,
+                error: createResult.errors?.map(e => e.message).join('; ') || 'Create failed'
+              });
+            }
+          } else {
+            // No storage available, mark as ingested but not persisted
+            results.ingested.push({
+              item,
+              entityId: entityData.id,
+              synced: false,
+              storedLocally: false,
+              warning: 'No storage backend available'
+            });
+          }
+        }
+      } catch (itemError) {
+        results.failed.push({
+          item,
+          error: itemError.message
+        });
+      }
+    }
+
+    // Log to audit
+    if (typeof auditLogger !== 'undefined') {
+      auditLogger.log('osint_data_ingested', {
+        total: results.total,
+        ingested: results.ingested.length,
+        failed: results.failed.length,
+        skipped: results.skipped.length
+      }, 'info');
+    }
+
+    results.success = results.failed.length === 0;
+
+    return results;
+  } catch (error) {
+    logger.error('Failed to ingest OSINT data', { error: error.message });
+    throw new Error(`Failed to ingest OSINT data: ${error.message}`);
   }
 }
 

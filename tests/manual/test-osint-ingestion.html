@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSINT Data Ingestion Test - Phase 8</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+        }
+        .container {
+            background: #1e293b;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        h1 {
+            color: #60a5fa;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .logo {
+            font-size: 48px;
+        }
+        .subtitle {
+            color: #94a3b8;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        h2 {
+            color: #f472b6;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #334155;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        h2 .icon {
+            font-size: 1.2em;
+        }
+        .section {
+            background: #0f172a;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border-left: 4px solid #60a5fa;
+        }
+        .data-item {
+            background: #1e293b;
+            padding: 12px 16px;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #334155;
+            transition: all 0.2s;
+        }
+        .data-item:hover {
+            background: #334155;
+            transform: translateX(5px);
+        }
+        .data-value {
+            color: #22d3ee;
+            word-break: break-all;
+        }
+        .data-label {
+            color: #94a3b8;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-left: 15px;
+            flex-shrink: 0;
+        }
+        .tag {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .tag-valid { background: #065f46; color: #34d399; }
+        .tag-invalid { background: #7f1d1d; color: #fca5a5; }
+        .tag-disposable { background: #78350f; color: #fbbf24; }
+        .tag-public { background: #1e3a8a; color: #93c5fd; }
+        .tag-private { background: #581c87; color: #d8b4fe; }
+        .tag-format { background: #134e4a; color: #5eead4; }
+
+        .instructions {
+            background: linear-gradient(135deg, #1e3a8a 0%, #312e81 100%);
+            padding: 25px;
+            border-radius: 12px;
+            margin: 30px 0;
+        }
+        .instructions h3 {
+            color: #93c5fd;
+            margin: 0 0 15px 0;
+        }
+        .instructions ol {
+            color: #cbd5e1;
+            margin: 0;
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin: 8px 0;
+        }
+        .instructions code {
+            background: rgba(0,0,0,0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #fbbf24;
+        }
+
+        .mixed-content {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 8px;
+            line-height: 1.8;
+            color: #cbd5e1;
+        }
+        .mixed-content p {
+            margin: 15px 0;
+        }
+
+        .false-positive-section {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 8px;
+            line-height: 1.8;
+            color: #cbd5e1;
+        }
+
+        .stats-box {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-item {
+            background: #334155;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #60a5fa;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 5px;
+        }
+
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #334155;
+            text-align: center;
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .nav-links a {
+            color: #60a5fa;
+            text-decoration: none;
+            padding: 8px 16px;
+            background: #334155;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .nav-links a:hover {
+            background: #475569;
+        }
+
+        .subsection-title {
+            color: #a78bfa;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 20px 0 10px 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav-links">
+            <a href="test-pages/index.html">Back to Test Pages</a>
+            <a href="#instructions">Testing Instructions</a>
+            <a href="#summary">Data Summary</a>
+        </div>
+
+        <h1>
+            <span class="logo">&#128021;</span>
+            OSINT Data Ingestion Test
+        </h1>
+        <p class="subtitle">Phase 8: Comprehensive test data for OSINT field detection and ingestion features</p>
+
+        <!-- Instructions Section -->
+        <div class="instructions" id="instructions">
+            <h3>Manual Testing Instructions</h3>
+            <ol>
+                <li>Load the Basset Hound extension in developer mode</li>
+                <li>Navigate to this test page</li>
+                <li>Open the extension popup or use the ingestion panel (<code>Ctrl+Shift+I</code> or via context menu)</li>
+                <li>Click "Detect OSINT Data" or use the auto-detection feature</li>
+                <li>Verify that all valid data types are detected with correct confidence scores</li>
+                <li>Check that invalid/false positive data is correctly filtered out</li>
+                <li>Test the highlight feature to visualize detected items</li>
+                <li>Verify export functionality for detected findings</li>
+            </ol>
+        </div>
+
+        <!-- Data Summary -->
+        <div id="summary">
+            <h2><span class="icon">&#128202;</span> Expected Detection Summary</h2>
+            <div class="stats-box">
+                <div class="stat-item">
+                    <div class="stat-number">8</div>
+                    <div class="stat-label">Email Addresses</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">10</div>
+                    <div class="stat-label">Phone Numbers</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">8</div>
+                    <div class="stat-label">Crypto Addresses</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">8</div>
+                    <div class="stat-label">IP Addresses</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">6</div>
+                    <div class="stat-label">Domains</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">6</div>
+                    <div class="stat-label">Social Handles</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">4</div>
+                    <div class="stat-label">MAC Addresses</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 1: Email Addresses -->
+        <h2><span class="icon">&#128231;</span> Email Addresses</h2>
+        <div class="section">
+            <div class="subsection-title">Valid Email Addresses</div>
+
+            <div class="data-item">
+                <span class="data-value">john.doe@example.com</span>
+                <span class="data-label">Standard format<span class="tag tag-valid">Valid</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">admin@company-name.org</span>
+                <span class="data-label">Hyphenated domain<span class="tag tag-valid">Valid</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">user.name+tag@subdomain.example.co.uk</span>
+                <span class="data-label">Complex format<span class="tag tag-valid">Valid</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">contact_us@business123.net</span>
+                <span class="data-label">Underscore in local<span class="tag tag-valid">Valid</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">support@tech-startup.io</span>
+                <span class="data-label">Modern TLD<span class="tag tag-valid">Valid</span></span>
+            </div>
+
+            <div class="subsection-title">Disposable Email Addresses</div>
+
+            <div class="data-item">
+                <span class="data-value">throwaway@mailinator.com</span>
+                <span class="data-label">Mailinator<span class="tag tag-disposable">Disposable</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">temp.user@guerrillamail.com</span>
+                <span class="data-label">Guerrilla Mail<span class="tag tag-disposable">Disposable</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">anonymous@10minutemail.net</span>
+                <span class="data-label">10 Minute Mail<span class="tag tag-disposable">Disposable</span></span>
+            </div>
+
+            <div class="subsection-title">Invalid Email Addresses (Should NOT be detected)</div>
+
+            <div class="data-item">
+                <span class="data-value">notanemail@</span>
+                <span class="data-label">Missing domain<span class="tag tag-invalid">Invalid</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">@nodomain.com</span>
+                <span class="data-label">Missing local part<span class="tag tag-invalid">Invalid</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">spaces in@email.com</span>
+                <span class="data-label">Contains spaces<span class="tag tag-invalid">Invalid</span></span>
+            </div>
+        </div>
+
+        <!-- Section 2: Phone Numbers -->
+        <h2><span class="icon">&#128222;</span> Phone Numbers</h2>
+        <div class="section">
+            <div class="subsection-title">US Phone Numbers</div>
+
+            <div class="data-item">
+                <span class="data-value">(555) 123-4567</span>
+                <span class="data-label">Parentheses format<span class="tag tag-format">US</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">555-123-4567</span>
+                <span class="data-label">Dash format<span class="tag tag-format">US</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">555.123.4567</span>
+                <span class="data-label">Dot format<span class="tag tag-format">US</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">5551234567</span>
+                <span class="data-label">No separators<span class="tag tag-format">US</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">+1 555 123 4567</span>
+                <span class="data-label">With country code<span class="tag tag-format">US</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">1-800-555-0199</span>
+                <span class="data-label">Toll-free<span class="tag tag-format">US</span></span>
+            </div>
+
+            <div class="subsection-title">International Phone Numbers</div>
+
+            <div class="data-item">
+                <span class="data-value">+44 20 7946 0958</span>
+                <span class="data-label">UK landline<span class="tag tag-format">UK</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">+49 30 12345678</span>
+                <span class="data-label">Germany<span class="tag tag-format">DE</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">+81 3 1234 5678</span>
+                <span class="data-label">Japan<span class="tag tag-format">JP</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">+61 2 9876 5432</span>
+                <span class="data-label">Australia<span class="tag tag-format">AU</span></span>
+            </div>
+        </div>
+
+        <!-- Section 3: Cryptocurrency Addresses -->
+        <h2><span class="icon">&#128176;</span> Cryptocurrency Addresses</h2>
+        <div class="section">
+            <div class="subsection-title">Bitcoin Addresses</div>
+
+            <div class="data-item">
+                <span class="data-value">1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2</span>
+                <span class="data-label">Legacy P2PKH<span class="tag tag-format">BTC</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy</span>
+                <span class="data-label">P2SH (SegWit compatible)<span class="tag tag-format">BTC</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq</span>
+                <span class="data-label">Bech32 (Native SegWit)<span class="tag tag-format">BTC</span></span>
+            </div>
+
+            <div class="subsection-title">Ethereum Addresses</div>
+
+            <div class="data-item">
+                <span class="data-value">0x742d35Cc6634C0532925a3b844Bc9e7595f5cEb5</span>
+                <span class="data-label">Standard ETH address<span class="tag tag-format">ETH</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe</span>
+                <span class="data-label">EIP-55 checksum<span class="tag tag-format">ETH</span></span>
+            </div>
+
+            <div class="subsection-title">Litecoin Addresses</div>
+
+            <div class="data-item">
+                <span class="data-value">LVg2kJoFNg45Nbpy53h7Fe1wKyeXVRhMH9</span>
+                <span class="data-label">Legacy L address<span class="tag tag-format">LTC</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">M8T1B2Z97gVdvmfkQcAtYbEepune1tzGua</span>
+                <span class="data-label">M address (P2SH)<span class="tag tag-format">LTC</span></span>
+            </div>
+
+            <div class="subsection-title">Other Cryptocurrencies</div>
+
+            <div class="data-item">
+                <span class="data-value">rN7n3473SaZBCG4dFL83w7a1RXtXtbk2D9</span>
+                <span class="data-label">Ripple (XRP)<span class="tag tag-format">XRP</span></span>
+            </div>
+        </div>
+
+        <!-- Section 4: IP Addresses -->
+        <h2><span class="icon">&#127760;</span> IP Addresses</h2>
+        <div class="section">
+            <div class="subsection-title">IPv4 Public Addresses</div>
+
+            <div class="data-item">
+                <span class="data-value">8.8.8.8</span>
+                <span class="data-label">Google DNS<span class="tag tag-public">Public</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">1.1.1.1</span>
+                <span class="data-label">Cloudflare DNS<span class="tag tag-public">Public</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">203.0.113.50</span>
+                <span class="data-label">Documentation range<span class="tag tag-public">Public</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">198.51.100.25</span>
+                <span class="data-label">TEST-NET-2<span class="tag tag-public">Public</span></span>
+            </div>
+
+            <div class="subsection-title">IPv4 Private Addresses</div>
+
+            <div class="data-item">
+                <span class="data-value">192.168.1.1</span>
+                <span class="data-label">Common router IP<span class="tag tag-private">Private</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">10.0.0.1</span>
+                <span class="data-label">Class A private<span class="tag tag-private">Private</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">172.16.254.1</span>
+                <span class="data-label">Class B private<span class="tag tag-private">Private</span></span>
+            </div>
+
+            <div class="subsection-title">IPv6 Addresses</div>
+
+            <div class="data-item">
+                <span class="data-value">2001:0db8:85a3:0000:0000:8a2e:0370:7334</span>
+                <span class="data-label">Full notation<span class="tag tag-format">IPv6</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">fe80::1</span>
+                <span class="data-label">Link-local compressed<span class="tag tag-format">IPv6</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">::ffff:192.0.2.1</span>
+                <span class="data-label">IPv4-mapped IPv6<span class="tag tag-format">IPv6</span></span>
+            </div>
+        </div>
+
+        <!-- Section 5: Domain Names -->
+        <h2><span class="icon">&#127758;</span> Domain Names</h2>
+        <div class="section">
+            <div class="data-item">
+                <span class="data-value">example.com</span>
+                <span class="data-label">Standard domain<span class="tag tag-valid">Valid</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">subdomain.example.org</span>
+                <span class="data-label">With subdomain<span class="tag tag-valid">Valid</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">www.multi-level.subdomain.co.uk</span>
+                <span class="data-label">Multi-level subdomain<span class="tag tag-valid">Valid</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">https://secure-site.io</span>
+                <span class="data-label">With protocol<span class="tag tag-valid">Valid</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">http://legacy-server.net</span>
+                <span class="data-label">HTTP protocol<span class="tag tag-valid">Valid</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">api.v2.service.technology</span>
+                <span class="data-label">API subdomain<span class="tag tag-valid">Valid</span></span>
+            </div>
+        </div>
+
+        <!-- Section 6: Social Media Handles -->
+        <h2><span class="icon">&#128101;</span> Social Media Usernames</h2>
+        <div class="section">
+            <div class="data-item">
+                <span class="data-value">@johndoe</span>
+                <span class="data-label">Simple username<span class="tag tag-format">Twitter/X</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">@security_researcher</span>
+                <span class="data-label">With underscore<span class="tag tag-format">Twitter/X</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">@CyberNews2024</span>
+                <span class="data-label">Alphanumeric<span class="tag tag-format">Twitter/X</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">@the_real_admin</span>
+                <span class="data-label">Multiple underscores<span class="tag tag-format">Twitter/X</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">@photo.grapher.pro</span>
+                <span class="data-label">With dots<span class="tag tag-format">Instagram</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">@official_brand_page</span>
+                <span class="data-label">Brand account<span class="tag tag-format">Instagram</span></span>
+            </div>
+        </div>
+
+        <!-- Section 7: MAC Addresses -->
+        <h2><span class="icon">&#128421;</span> MAC Addresses</h2>
+        <div class="section">
+            <div class="data-item">
+                <span class="data-value">00:1A:2B:3C:4D:5E</span>
+                <span class="data-label">Colon separated<span class="tag tag-format">Standard</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">00-1A-2B-3C-4D-5F</span>
+                <span class="data-label">Hyphen separated<span class="tag tag-format">Windows</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">AA:BB:CC:DD:EE:FF</span>
+                <span class="data-label">All uppercase<span class="tag tag-format">Standard</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">aa:bb:cc:dd:ee:00</span>
+                <span class="data-label">All lowercase<span class="tag tag-format">Standard</span></span>
+            </div>
+        </div>
+
+        <!-- Section 8: False Positive Testing -->
+        <h2><span class="icon">&#128683;</span> False Positive Testing</h2>
+        <div class="section">
+            <p class="subsection-title">Plain Text (Should NOT trigger detection)</p>
+            <div class="false-positive-section">
+                <p>
+                    The weather today is sunny with a high of 72 degrees. We expect light winds
+                    from the northwest at approximately 15 miles per hour.
+                </p>
+                <p>
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod
+                    tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
+                    quis nostrud exercitation ullamco laboris.
+                </p>
+                <p>
+                    Meeting scheduled for Tuesday at 3:00 PM in Conference Room B. Please bring
+                    your quarterly reports and project updates. Coffee and snacks will be provided.
+                </p>
+                <p>
+                    The project deadline is December 31st. We need to complete phases 1 through 5
+                    before the end of Q4. Budget allocation is set at $50,000 USD.
+                </p>
+            </div>
+
+            <p class="subsection-title">Potential False Positives (Should be correctly handled)</p>
+            <div class="false-positive-section">
+                <p>
+                    Version numbers like 1.2.3.4 or 192.168 (incomplete) should not be detected as IPs.
+                </p>
+                <p>
+                    Product codes like ABC-123-DEF or order numbers #12345678901234567890 are not crypto addresses.
+                </p>
+                <p>
+                    Time formats like 12:34:56:78 should not be detected as MAC addresses.
+                </p>
+                <p>
+                    Hashtags like #trending or #tech2024 are not social media handles.
+                </p>
+                <p>
+                    Mathematical expressions like f(x) = 2x + 3 @ point x=5 are not email addresses.
+                </p>
+            </div>
+        </div>
+
+        <!-- Section 9: Mixed Content -->
+        <h2><span class="icon">&#128209;</span> Mixed Content Elements</h2>
+        <div class="section">
+            <div class="mixed-content">
+                <p>
+                    <strong>Contact Information:</strong> For support, please email
+                    <span class="data-value">help@support-center.com</span> or call
+                    <span class="data-value">(888) 555-0123</span>. Our main office
+                    is reachable at <span class="data-value">+1-202-555-0147</span>.
+                </p>
+                <p>
+                    <strong>Technical Details:</strong> The server at
+                    <span class="data-value">192.168.100.5</span> handles requests for
+                    <span class="data-value">api.internal-service.net</span>. External
+                    traffic routes through <span class="data-value">45.33.32.156</span>.
+                </p>
+                <p>
+                    <strong>Payment Options:</strong> We accept Bitcoin at
+                    <span class="data-value">1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa</span>
+                    or Ethereum at
+                    <span class="data-value">0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B</span>.
+                </p>
+                <p>
+                    <strong>Social Media:</strong> Follow us
+                    <span class="data-value">@company_official</span> on Twitter/X and
+                    <span class="data-value">@company.brand</span> on Instagram. Contact our
+                    security team at <span class="data-value">security@company.com</span>.
+                </p>
+                <p>
+                    <strong>Network Device:</strong> Router MAC address is
+                    <span class="data-value">F4:5C:89:D3:A1:B7</span>, connected to
+                    gateway <span class="data-value">10.10.10.1</span>.
+                </p>
+            </div>
+        </div>
+
+        <!-- Section 10: Edge Cases -->
+        <h2><span class="icon">&#128736;</span> Edge Cases</h2>
+        <div class="section">
+            <div class="subsection-title">Boundary Values</div>
+
+            <div class="data-item">
+                <span class="data-value">0.0.0.0</span>
+                <span class="data-label">All zeros IP<span class="tag tag-format">Edge</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">255.255.255.255</span>
+                <span class="data-label">Broadcast IP<span class="tag tag-format">Edge</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">a@b.co</span>
+                <span class="data-label">Minimal email<span class="tag tag-format">Edge</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">@a</span>
+                <span class="data-label">Single char handle<span class="tag tag-format">Edge</span></span>
+            </div>
+
+            <div class="subsection-title">Special Characters</div>
+
+            <div class="data-item">
+                <span class="data-value">user+filter@gmail.com</span>
+                <span class="data-label">Plus addressing<span class="tag tag-format">Edge</span></span>
+            </div>
+
+            <div class="data-item">
+                <span class="data-value">very.long.email.address.with.many.parts@long-domain-name.example.com</span>
+                <span class="data-label">Long email<span class="tag tag-format">Edge</span></span>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Basset Hound Browser Automation Extension - Phase 8 OSINT Ingestion Test Page</p>
+            <p>Last updated: January 2026</p>
+        </div>
+    </div>
+
+    <!-- Hidden test data for programmatic detection testing -->
+    <div id="hidden-test-data" style="display: none;" data-testid="hidden-osint">
+        <!-- These should still be detectable by the field detector -->
+        <span data-type="email">hidden.email@secret-domain.com</span>
+        <span data-type="phone">+1-999-888-7777</span>
+        <span data-type="btc">bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh</span>
+        <span data-type="eth">0x1234567890123456789012345678901234567890</span>
+        <span data-type="ip">100.100.100.100</span>
+    </div>
+
+    <script>
+        // Test helper script for manual testing
+        window.OSINTTestHelper = {
+            // Count all detectable items on the page
+            countExpectedDetections: function() {
+                const counts = {
+                    emails: document.querySelectorAll('.data-value').length,
+                    total: 0
+                };
+
+                // Count by data type based on section headers
+                const sections = {
+                    'Email Addresses': 0,
+                    'Phone Numbers': 0,
+                    'Cryptocurrency Addresses': 0,
+                    'IP Addresses': 0,
+                    'Domain Names': 0,
+                    'Social Media Usernames': 0,
+                    'MAC Addresses': 0
+                };
+
+                console.log('OSINT Test Helper loaded. Use window.OSINTTestHelper for utilities.');
+                return counts;
+            },
+
+            // Highlight all data-value elements for visual verification
+            highlightAll: function() {
+                document.querySelectorAll('.data-value').forEach(el => {
+                    el.style.backgroundColor = 'rgba(255, 255, 0, 0.3)';
+                    el.style.border = '1px solid yellow';
+                });
+                console.log('All test data values highlighted');
+            },
+
+            // Clear highlights
+            clearHighlights: function() {
+                document.querySelectorAll('.data-value').forEach(el => {
+                    el.style.backgroundColor = '';
+                    el.style.border = '';
+                });
+                console.log('Highlights cleared');
+            },
+
+            // Get all test values as array
+            getAllTestValues: function() {
+                return Array.from(document.querySelectorAll('.data-value')).map(el => el.textContent);
+            }
+        };
+
+        console.log('OSINT Ingestion Test Page loaded');
+        console.log('Test helper available at window.OSINTTestHelper');
+    </script>
+</body>
+</html>

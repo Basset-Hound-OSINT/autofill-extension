@@ -487,7 +487,9 @@ Benefits:
 | 2.13.0 | 2024-12-27 | Added audit logging with privacy-aware redaction, basset-hound backend sync with offline queue and conflict resolution |
 | 2.14.0 | 2024-12-27 | Added browser fingerprint randomization (Canvas, WebGL, Audio, Navigator, Screen) for authorized security testing |
 | 2.14.1 | 2024-12-28 | WebSocket error handling fixes, synced to remote testing server, ran automated tests (465/508 passing) |
-| **2.14.2** | **2024-12-28** | **Test suite improvements: Fixed JSON.parse bug, added CSS.escape polyfill, enhanced webRequest mock. Tests: 482/508 passing (94.9%)** |
+| 2.14.2 | 2024-12-28 | Test suite improvements: Fixed JSON.parse bug, added CSS.escape polyfill, enhanced webRequest mock. Tests: 482/508 passing (94.9%) |
+| 2.16.0 | 2026-01-05 | **Phase 8 OSINT Data Ingestion**: Field detector, data verifier, provenance capture, ingest panel UI, element picker (~4,000+ lines) |
+| **2.16.1** | **2026-01-05** | **Phase 8 Integration**: Background/content handlers, manual test page, comprehensive documentation | |
 
 ---
 
@@ -855,8 +857,152 @@ When implementing features:
 
 ---
 
-*Last Updated: December 29, 2025*
-*Version: v2.15.0*
-*Status: ✅ Production Certified with Major Feature Additions*
-*New Features: MCP Integration, DevTools Panel, Enhanced Extraction*
-*Next Steps: Deploy and enjoy AI-powered browser automation!*
+## Phase 8: OSINT Data Ingestion - ✅ COMPLETED (January 5, 2026)
+
+### 8.1 Auto-Detection for OSINT Data
+
+| Task | Status | Description |
+|------|--------|-------------|
+| OSINT field detector | ✅ Done | Detect emails, phones, crypto, IPs, domains on pages |
+| Pattern library | ✅ Done | 15+ regex patterns for OSINT data types (BTC, ETH, LTC, XRP, DOGE, BCH, SOL) |
+| Visual highlighting | ✅ Done | Highlight detected data on page with overlays |
+| Context extraction | ✅ Done | Capture surrounding text for context (configurable length) |
+| Custom patterns | ✅ Done | Add/remove custom detection patterns |
+| Statistics tracking | ✅ Done | Track detection stats by type |
+
+### 8.2 "Ingest" Button Functionality
+
+| Task | Status | Description |
+|------|--------|-------------|
+| Ingest button UI | ✅ Done | Floating button showing detected count with professional design |
+| Ingest panel | ✅ Done | Modal to review and select items to ingest |
+| Verification display | ✅ Done | Show verification status (verified/warning/error) for each item |
+| Batch ingestion | ✅ Done | Send multiple items with progress bar |
+| Type color coding | ✅ Done | Visual distinction between data types |
+| Rescan support | ✅ Done | Re-scan page for new findings |
+
+### 8.3 Data Verification Before Ingestion
+
+| Task | Status | Description |
+|------|--------|-------------|
+| Client-side verification | ✅ Done | Format validation for emails, phones, crypto, IPs, domains, URLs |
+| Phone validation | ✅ Done | Country detection, E.164 formatting, length validation |
+| Crypto address validation | ✅ Done | Bitcoin/Ethereum/Litecoin/XRP with checksum validation |
+| Disposable email detection | ✅ Done | Database of 40+ disposable email domains |
+| Email typo detection | ✅ Done | Detect common typos (gmial.com → gmail.com) |
+| IP address validation | ✅ Done | IPv4/IPv6 with private/reserved/loopback detection |
+
+### 8.4 Element Selection and Screenshots
+
+| Task | Status | Description |
+|------|--------|-------------|
+| Element picker mode | ✅ Done | Visual selector with hover highlighting and tooltips |
+| Multi-element selection | ✅ Done | Select multiple elements with Shift+Click |
+| Keyboard shortcuts | ✅ Done | Esc to cancel, Enter to confirm |
+| Text selection support | ✅ Done | Detect OSINT data in text selections |
+| Selector generation | ✅ Done | Generate CSS selectors and XPath for elements |
+| Evidence bundling | ✅ Done | Package element data with provenance |
+
+### 8.5 Data Provenance Capture
+
+| Task | Status | Description |
+|------|--------|-------------|
+| Provenance capture | ✅ Done | Automatic URL, date, page title capture |
+| Canonical URL detection | ✅ Done | Use canonical URL when available |
+| Source type detection | ✅ Done | Auto-detect website/social/search/paste/forum/dark web |
+| Page metadata | ✅ Done | Extract author, published date, Open Graph, Twitter Cards |
+| Element provenance | ✅ Done | Capture element-specific context with selector and XPath |
+| basset-hound format | ✅ Done | Generate provenance in basset-hound API format |
+
+**Implementation:** ~4,000+ lines of new code across 5 modules + handlers
+
+**New Files Created:**
+- `utils/data-pipeline/field-detector.js` - OSINT field detection (~680 lines)
+- `utils/data-pipeline/verifier.js` - Data verification (~812 lines)
+- `utils/data-pipeline/provenance.js` - Provenance capture (~617 lines)
+- `utils/ui/ingest-panel.js` - Ingest modal UI (~978 lines)
+- `utils/ui/element-picker.js` - Element selection mode (~848 lines)
+- `tests/unit/data-pipeline.test.js` - Comprehensive tests (~600 lines)
+- `tests/manual/test-osint-ingestion.html` - Manual test page (~788 lines)
+
+**Files Modified:**
+- `background.js` - Added 5 command handlers (~350 lines)
+- `content.js` - Added 9 message handlers with lazy initialization (~320 lines)
+- `manifest.json` - Added new content scripts and web_accessible_resources
+- `tests/manual/test-pages/index.html` - Added link to OSINT test page
+
+**Detection Patterns Implemented:**
+- Email addresses (RFC-compliant)
+- Phone numbers (US + international E.164)
+- Bitcoin addresses (P2PKH, P2SH, Bech32)
+- Ethereum addresses (0x format)
+- Litecoin, XRP, Dogecoin, Bitcoin Cash, Solana
+- IPv4 and IPv6 addresses
+- Domain names
+- Social media usernames (Twitter, Instagram)
+- MAC addresses, IMEI numbers
+- SSN/Credit card patterns (masked detection)
+
+See [PHASE8-IMPLEMENTATION-2026-01-05.md](docs/findings/PHASE8-IMPLEMENTATION-2026-01-05.md) for details.
+
+---
+
+## Phase 9: basset-hound Integration Enhancements - 📋 PLANNED
+
+### 9.1 Enhanced basset-hound Sync
+
+| Task | Status | Description |
+|------|--------|-------------|
+| Provenance in sync | 📋 Planned | Include provenance in all sync operations |
+| Verification before sync | 📋 Planned | Optional verification gate before sending |
+| Entity creation with source | 📋 Planned | Create entities with source URL tracking |
+| Server-side verification | 📋 Planned | Verify data against basset-hound's databases |
+| Confidence scoring sync | 📋 Planned | Sync detection confidence scores for prioritization |
+
+### 9.2 DevTools Integration
+
+| Task | Status | Description |
+|------|--------|-------------|
+| "Ingest" tab in DevTools | 📋 Planned | New tab for OSINT ingestion workflow |
+| Detected data list | 📋 Planned | Show all detected OSINT data |
+| Verification status display | 📋 Planned | Visual indicators for verification status |
+| Selected elements list | 📋 Planned | Show manually selected elements |
+| Ingestion history | 📋 Planned | Track what was ingested and when |
+
+### 9.3 Advanced Detection Features
+
+| Task | Status | Description |
+|------|--------|-------------|
+| Dynamic content detection | 📋 Planned | MutationObserver for AJAX-loaded OSINT data |
+| Cross-page correlation | 📋 Planned | Track same identifiers across multiple pages |
+| Screenshot evidence | 📋 Planned | Auto-capture screenshots with detected data highlighted |
+| PDF/Document scanning | 📋 Planned | Detect OSINT data in embedded PDFs |
+| OCR integration | 📋 Planned | Extract text from images for OSINT detection |
+
+### 9.4 Enhanced Verification
+
+| Task | Status | Description |
+|------|--------|-------------|
+| libphonenumber-js integration | 📋 Planned | Professional phone number parsing |
+| multicoin-address-validator | 📋 Planned | 500+ coin address validation |
+| Email deliverability check | 📋 Planned | Verify email addresses are actually deliverable |
+| Domain reputation | 📋 Planned | Check domain reputation via APIs |
+| Social media verification | 📋 Planned | Verify social handles exist on platforms |
+
+### 9.5 User Experience Improvements
+
+| Task | Status | Description |
+|------|--------|-------------|
+| Keyboard shortcuts | 📋 Planned | Hotkeys for quick ingestion workflow |
+| Right-click context menu | 📋 Planned | Ingest selected text via context menu |
+| Bulk operations | 📋 Planned | Select all/none, filter by type |
+| Export findings | 📋 Planned | Export detected data to CSV/JSON |
+| Notification preferences | 📋 Planned | Configure alerts for auto-detected data |
+
+---
+
+*Last Updated: January 5, 2026*
+*Version: v2.16.1*
+*Status: ✅ Production Certified with OSINT Data Ingestion*
+*New Features: Phase 8 OSINT Ingestion with Background/Content Handlers, Manual Test Page*
+*Next Steps: Phase 9 - Enhanced basset-hound Integration, DevTools Ingest Tab, Advanced Detection*

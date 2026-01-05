@@ -403,6 +403,34 @@ async function handleMessage(request) {
     case 'download_resources':
       return handleDownloadResources(request.params);
 
+    // Phase 8: OSINT Data Ingestion Commands
+    case 'detect_osint':
+      return handleDetectOSINT(request.options);
+
+    case 'highlight_findings':
+      return handleHighlightFindings(request.findings, request.options);
+
+    case 'clear_highlights':
+      return handleClearHighlights();
+
+    case 'start_element_picker':
+      return handleStartElementPicker(request.options);
+
+    case 'stop_element_picker':
+      return handleStopElementPicker();
+
+    case 'get_selected_elements':
+      return handleGetSelectedElements();
+
+    case 'show_ingest_panel':
+      return handleShowIngestPanel(request.options);
+
+    case 'hide_ingest_panel':
+      return handleHideIngestPanel();
+
+    case 'capture_element_provenance':
+      return handleCaptureElementProvenance(request.selector, request.options);
+
     default:
       throw new Error(`Unknown action: ${request.action}`);
   }
@@ -8146,6 +8174,329 @@ async function handleDownloadResources(params = {}) {
     return result;
   } catch (error) {
     contentLogger.error('Failed to download resources', { error: error.message });
+    return { success: false, error: error.message };
+  }
+}
+
+// =============================================================================
+// Phase 8: OSINT Data Ingestion Handlers
+// =============================================================================
+
+// Module instances for OSINT data pipeline (lazily initialized)
+let osintFieldDetector = null;
+let elementPicker = null;
+let ingestPanel = null;
+let provenanceCapture = null;
+
+/**
+ * Initialize OSINT field detector
+ * @returns {OSINTFieldDetector} Field detector instance
+ */
+function getOSINTFieldDetector() {
+  if (!osintFieldDetector && typeof OSINTFieldDetector !== 'undefined') {
+    osintFieldDetector = new OSINTFieldDetector({
+      logger: contentLogger,
+      highlightEnabled: true
+    });
+  }
+  return osintFieldDetector;
+}
+
+/**
+ * Initialize provenance capture
+ * @returns {ProvenanceCapture} Provenance capture instance
+ */
+function getProvenanceCapture() {
+  if (!provenanceCapture && typeof ProvenanceCapture !== 'undefined') {
+    provenanceCapture = new ProvenanceCapture({
+      logger: contentLogger
+    });
+  }
+  return provenanceCapture;
+}
+
+/**
+ * Initialize element picker
+ * @param {Object} options - Picker options
+ * @returns {ElementPicker} Element picker instance
+ */
+function getElementPicker(options = {}) {
+  if (!elementPicker && typeof ElementPicker !== 'undefined') {
+    elementPicker = new ElementPicker({
+      fieldDetector: getOSINTFieldDetector(),
+      provenanceCapture: getProvenanceCapture(),
+      logger: contentLogger,
+      ...options
+    });
+  }
+  return elementPicker;
+}
+
+/**
+ * Initialize ingest panel
+ * @param {Object} options - Panel options
+ * @returns {IngestPanel} Ingest panel instance
+ */
+function getIngestPanel(options = {}) {
+  if (!ingestPanel && typeof IngestPanel !== 'undefined') {
+    ingestPanel = new IngestPanel({
+      fieldDetector: getOSINTFieldDetector(),
+      provenanceCapture: getProvenanceCapture(),
+      logger: contentLogger,
+      showButton: false,
+      ...options
+    });
+  }
+  return ingestPanel;
+}
+
+/**
+ * Detect OSINT data on the page using OSINTFieldDetector
+ * @param {Object} options - Detection options
+ * @returns {Promise<Object>} Detection results
+ */
+async function handleDetectOSINT(options = {}) {
+  try {
+    const detector = getOSINTFieldDetector();
+    if (!detector) {
+      return { success: false, error: 'OSINTFieldDetector not available' };
+    }
+
+    contentLogger.info('Detecting OSINT data on page', options);
+    const findings = detector.detectOnPage(options);
+
+    contentLogger.debug('OSINT detection complete', {
+      findingsCount: findings.length
+    });
+
+    return {
+      success: true,
+      findings: findings,
+      stats: detector.stats
+    };
+  } catch (error) {
+    contentLogger.error('Failed to detect OSINT data', { error: error.message });
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Highlight detected OSINT findings on the page
+ * @param {Array} findings - Findings to highlight (optional, uses cached if not provided)
+ * @param {Object} options - Highlight options
+ * @returns {Promise<Object>} Highlight results
+ */
+async function handleHighlightFindings(findings = null, options = {}) {
+  try {
+    const detector = getOSINTFieldDetector();
+    if (!detector) {
+      return { success: false, error: 'OSINTFieldDetector not available' };
+    }
+
+    contentLogger.info('Highlighting OSINT findings', {
+      providedFindings: findings?.length || 0,
+      options
+    });
+
+    const highlighted = detector.highlightFindings({
+      findings: findings,
+      ...options
+    });
+
+    contentLogger.debug('Highlights applied', { count: highlighted.length });
+
+    return {
+      success: true,
+      highlightedCount: highlighted.length,
+      highlighted: highlighted
+    };
+  } catch (error) {
+    contentLogger.error('Failed to highlight findings', { error: error.message });
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Clear all OSINT highlights from the page
+ * @returns {Promise<Object>} Clear results
+ */
+async function handleClearHighlights() {
+  try {
+    const detector = getOSINTFieldDetector();
+    if (!detector) {
+      return { success: false, error: 'OSINTFieldDetector not available' };
+    }
+
+    contentLogger.info('Clearing OSINT highlights');
+    detector.clearHighlights();
+
+    return { success: true };
+  } catch (error) {
+    contentLogger.error('Failed to clear highlights', { error: error.message });
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Start element picker mode for manual OSINT data selection
+ * @param {Object} options - Picker options
+ * @returns {Promise<Object>} Start results
+ */
+async function handleStartElementPicker(options = {}) {
+  try {
+    const picker = getElementPicker(options);
+    if (!picker) {
+      return { success: false, error: 'ElementPicker not available' };
+    }
+
+    contentLogger.info('Starting element picker', options);
+    picker.start();
+
+    return {
+      success: true,
+      message: 'Element picker started'
+    };
+  } catch (error) {
+    contentLogger.error('Failed to start element picker', { error: error.message });
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Stop element picker mode
+ * @returns {Promise<Object>} Stop results
+ */
+async function handleStopElementPicker() {
+  try {
+    const picker = getElementPicker();
+    if (!picker) {
+      return { success: false, error: 'ElementPicker not available' };
+    }
+
+    contentLogger.info('Stopping element picker');
+    const result = picker.complete();
+
+    return {
+      success: true,
+      selections: result.selections || []
+    };
+  } catch (error) {
+    contentLogger.error('Failed to stop element picker', { error: error.message });
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get currently selected elements from element picker
+ * @returns {Promise<Object>} Selected elements
+ */
+async function handleGetSelectedElements() {
+  try {
+    const picker = getElementPicker();
+    if (!picker) {
+      return { success: false, error: 'ElementPicker not available' };
+    }
+
+    contentLogger.debug('Getting selected elements');
+    const selectedData = picker.getSelectedData();
+
+    return {
+      success: true,
+      selections: selectedData
+    };
+  } catch (error) {
+    contentLogger.error('Failed to get selected elements', { error: error.message });
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Show the ingest panel UI
+ * @param {Object} options - Panel options
+ * @returns {Promise<Object>} Show results
+ */
+async function handleShowIngestPanel(options = {}) {
+  try {
+    const panel = getIngestPanel(options);
+    if (!panel) {
+      return { success: false, error: 'IngestPanel not available' };
+    }
+
+    contentLogger.info('Showing ingest panel', options);
+
+    // Scan for OSINT data before showing
+    if (options.scan !== false) {
+      await panel.scan(options.scanOptions || {});
+    }
+
+    panel.show();
+
+    return {
+      success: true,
+      message: 'Ingest panel shown',
+      findingsCount: panel.state.findings.length
+    };
+  } catch (error) {
+    contentLogger.error('Failed to show ingest panel', { error: error.message });
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Hide the ingest panel UI
+ * @returns {Promise<Object>} Hide results
+ */
+async function handleHideIngestPanel() {
+  try {
+    const panel = getIngestPanel();
+    if (!panel) {
+      return { success: false, error: 'IngestPanel not available' };
+    }
+
+    contentLogger.info('Hiding ingest panel');
+    panel.hide();
+
+    return { success: true };
+  } catch (error) {
+    contentLogger.error('Failed to hide ingest panel', { error: error.message });
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Capture provenance data for a specific element
+ * @param {string} selector - CSS selector for the element
+ * @param {Object} options - Capture options
+ * @returns {Promise<Object>} Provenance data
+ */
+async function handleCaptureElementProvenance(selector, options = {}) {
+  try {
+    const capture = getProvenanceCapture();
+    if (!capture) {
+      return { success: false, error: 'ProvenanceCapture not available' };
+    }
+
+    contentLogger.info('Capturing element provenance', { selector, options });
+
+    // Find the element
+    const element = document.querySelector(selector);
+    if (!element) {
+      return { success: false, error: `Element not found: ${selector}` };
+    }
+
+    const provenance = capture.captureForElement(element, options);
+
+    contentLogger.debug('Provenance captured', {
+      selector,
+      sourceType: provenance.source_type
+    });
+
+    return {
+      success: true,
+      provenance: provenance
+    };
+  } catch (error) {
+    contentLogger.error('Failed to capture provenance', { error: error.message });
     return { success: false, error: error.message };
   }
 }

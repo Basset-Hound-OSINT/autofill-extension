@@ -39,6 +39,11 @@
         "utils/captcha-detector.js",
         "utils/form-detector.js",
         "utils/content-extractor.js",
+        "utils/data-pipeline/field-detector.js",
+        "utils/data-pipeline/verifier.js",
+        "utils/data-pipeline/provenance.js",
+        "utils/ui/ingest-panel.js",
+        "utils/ui/element-picker.js",
         "data/form-templates.js",
         "content.js"
       ],
@@ -76,6 +81,11 @@
         "utils/form-detector.js",
         "utils/content-extractor.js",
         "utils/security/input-validator.js",
+        "utils/data-pipeline/field-detector.js",
+        "utils/data-pipeline/verifier.js",
+        "utils/data-pipeline/provenance.js",
+        "utils/ui/ingest-panel.js",
+        "utils/ui/element-picker.js",
         "data/form-templates.js"
       ],
       "matches": ["<all_urls>"]

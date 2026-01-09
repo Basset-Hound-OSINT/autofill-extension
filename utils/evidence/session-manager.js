@@ -2349,3 +2349,424 @@ if (typeof module !== 'undefined' && module.exports) {
     mcpExportEvidenceSession
   };
 }
+
+// =============================================================================
+// Collaboration Integration (Phase 18.1)
+// =============================================================================
+
+/**
+ * Collaboration managers integration
+ * @type {Object}
+ */
+let collaborationManagers = {
+  sharing: null,
+  sync: null,
+  comments: null,
+  assignments: null,
+  team: null
+};
+
+/**
+ * Initialize collaboration features for a session
+ * @param {string} sessionId - Session ID
+ * @param {Object} options - Collaboration options
+ * @returns {Promise<Object>} Initialization result
+ */
+async function initializeCollaboration(sessionId, options = {}) {
+  const {
+    enableSharing = true,
+    enableSync = true,
+    enableComments = true,
+    enableAssignments = true,
+    enableTeam = true,
+    wsUrl = null,
+    userId = null
+  } = options;
+
+  const results = {
+    success: true,
+    sessionId,
+    features: {},
+    errors: []
+  };
+
+  try {
+    // Initialize sharing
+    if (enableSharing && typeof SessionSharingManager !== 'undefined') {
+      if (!collaborationManagers.sharing) {
+        collaborationManagers.sharing = new SessionSharingManager();
+      }
+      results.features.sharing = true;
+    }
+
+    // Initialize real-time sync
+    if (enableSync && typeof RealtimeSyncManager !== 'undefined' && wsUrl) {
+      if (!collaborationManagers.sync) {
+        collaborationManagers.sync = new RealtimeSyncManager({
+          wsUrl,
+          onSync: (syncData) => {
+            // Forward sync events to session manager
+            handleSyncEvent(syncData);
+          },
+          onPresenceUpdate: (presenceData) => {
+            // Handle presence updates
+            handlePresenceUpdate(presenceData);
+          }
+        });
+      }
+
+      // Connect to sync server
+      const connectResult = await collaborationManagers.sync.connect();
+      if (connectResult.success) {
+        // Subscribe to session
+        await collaborationManagers.sync.subscribeToSession(sessionId, userId);
+        results.features.sync = true;
+      } else {
+        results.errors.push(`Sync connection failed: ${connectResult.error}`);
+      }
+    }
+
+    // Initialize comments
+    if (enableComments && typeof CommentManager !== 'undefined') {
+      if (!collaborationManagers.comments) {
+        collaborationManagers.comments = new CommentManager({
+          onCommentAdded: (comment) => {
+            // Sync comment to other users
+            if (collaborationManagers.sync && collaborationManagers.sync.isConnected()) {
+              collaborationManagers.sync.queueOperation(
+                sessionId,
+                'comment_added',
+                comment
+              );
+            }
+          }
+        });
+      }
+      results.features.comments = true;
+    }
+
+    // Initialize assignments
+    if (enableAssignments && typeof AssignmentManager !== 'undefined') {
+      if (!collaborationManagers.assignments) {
+        collaborationManagers.assignments = new AssignmentManager({
+          onAssignmentCreated: (assignment) => {
+            // Sync assignment to other users
+            if (collaborationManagers.sync && collaborationManagers.sync.isConnected()) {
+              collaborationManagers.sync.queueOperation(
+                sessionId,
+                'assignment_created',
+                assignment
+              );
+            }
+          }
+        });
+      }
+      results.features.assignments = true;
+    }
+
+    // Initialize team management
+    if (enableTeam && typeof TeamManager !== 'undefined') {
+      if (!collaborationManagers.team) {
+        collaborationManagers.team = new TeamManager({
+          onMemberAdded: (data) => {
+            // Sync team changes
+            if (collaborationManagers.sync && collaborationManagers.sync.isConnected()) {
+              collaborationManagers.sync.queueOperation(
+                sessionId,
+                'member_joined',
+                data
+              );
+            }
+          },
+          onActivity: (activity) => {
+            // Record activity in session
+            recordSessionActivity(sessionId, activity);
+          }
+        });
+      }
+      results.features.team = true;
+    }
+
+    console.log('[SessionManager] Collaboration features initialized:', results.features);
+  } catch (error) {
+    results.success = false;
+    results.errors.push(error.message);
+    console.error('[SessionManager] Collaboration initialization error:', error);
+  }
+
+  return results;
+}
+
+/**
+ * Handle sync event from real-time sync
+ * @param {Object} syncData - Sync event data
+ */
+function handleSyncEvent(syncData) {
+  const { eventType, sessionId, data, userId } = syncData;
+
+  console.log(`[SessionManager] Sync event: ${eventType} for session ${sessionId}`);
+
+  // Forward to appropriate manager
+  switch (eventType) {
+    case 'evidence_added':
+      // Update session with new evidence
+      break;
+    case 'comment_added':
+      if (collaborationManagers.comments) {
+        // Comment already synced via manager
+      }
+      break;
+    case 'assignment_created':
+      if (collaborationManagers.assignments) {
+        // Assignment already synced via manager
+      }
+      break;
+    case 'member_joined':
+    case 'member_left':
+      if (collaborationManagers.team) {
+        // Team change already handled
+      }
+      break;
+  }
+}
+
+/**
+ * Handle presence update
+ * @param {Object} presenceData - Presence data
+ */
+function handlePresenceUpdate(presenceData) {
+  console.log('[SessionManager] Presence update:', presenceData);
+  // Could trigger UI updates here
+}
+
+/**
+ * Record session activity
+ * @param {string} sessionId - Session ID
+ * @param {Object} activity - Activity data
+ */
+function recordSessionActivity(sessionId, activity) {
+  if (collaborationManagers.team) {
+    collaborationManagers.team.recordActivity(sessionId, activity);
+  }
+}
+
+/**
+ * Get collaboration managers
+ * @returns {Object} Collaboration managers
+ */
+function getCollaborationManagers() {
+  return collaborationManagers;
+}
+
+/**
+ * MCP Command: Share session
+ * @param {Object} params - Command parameters
+ * @returns {Promise<Object>} Command result
+ */
+async function mcpShareSession(params) {
+  const {
+    session_id,
+    share_type = 'temporary',
+    permission = 'viewer',
+    password = null,
+    expires_in_hours = null
+  } = params;
+
+  if (!session_id) {
+    return {
+      success: false,
+      error: 'session_id is required',
+      command: 'share_session',
+      timestamp: Date.now()
+    };
+  }
+
+  if (!collaborationManagers.sharing) {
+    return {
+      success: false,
+      error: 'Sharing not initialized',
+      command: 'share_session',
+      timestamp: Date.now()
+    };
+  }
+
+  const result = await collaborationManagers.sharing.createShareLink(session_id, {
+    shareType: share_type,
+    permission,
+    password,
+    expiresInHours: expires_in_hours
+  });
+
+  return {
+    ...result,
+    command: 'share_session'
+  };
+}
+
+/**
+ * MCP Command: Add comment
+ * @param {Object} params - Command parameters
+ * @returns {Promise<Object>} Command result
+ */
+async function mcpAddComment(params) {
+  const {
+    session_id,
+    evidence_id = null,
+    parent_id = null,
+    content,
+    author_id,
+    author_name
+  } = params;
+
+  if (!session_id || !content) {
+    return {
+      success: false,
+      error: 'session_id and content are required',
+      command: 'add_comment',
+      timestamp: Date.now()
+    };
+  }
+
+  if (!collaborationManagers.comments) {
+    return {
+      success: false,
+      error: 'Comments not initialized',
+      command: 'add_comment',
+      timestamp: Date.now()
+    };
+  }
+
+  const result = await collaborationManagers.comments.addComment(session_id, content, {
+    evidenceId: evidence_id,
+    parentId: parent_id,
+    authorId: author_id,
+    authorName: author_name
+  });
+
+  return {
+    ...result,
+    command: 'add_comment'
+  };
+}
+
+/**
+ * MCP Command: Assign evidence
+ * @param {Object} params - Command parameters
+ * @returns {Promise<Object>} Command result
+ */
+async function mcpAssignEvidence(params) {
+  const {
+    session_id,
+    evidence_id,
+    assigned_to,
+    assigned_by,
+    title,
+    description,
+    priority = 'medium',
+    due_date = null
+  } = params;
+
+  if (!session_id || !evidence_id || !assigned_to) {
+    return {
+      success: false,
+      error: 'session_id, evidence_id, and assigned_to are required',
+      command: 'assign_evidence',
+      timestamp: Date.now()
+    };
+  }
+
+  if (!collaborationManagers.assignments) {
+    return {
+      success: false,
+      error: 'Assignments not initialized',
+      command: 'assign_evidence',
+      timestamp: Date.now()
+    };
+  }
+
+  const result = await collaborationManagers.assignments.createAssignment({
+    sessionId: session_id,
+    evidenceId: evidence_id,
+    assignedTo: assigned_to,
+    assignedBy: assigned_by,
+    title,
+    description,
+    priority,
+    dueDate: due_date
+  });
+
+  return {
+    ...result,
+    command: 'assign_evidence'
+  };
+}
+
+/**
+ * MCP Command: Invite team member
+ * @param {Object} params - Command parameters
+ * @returns {Promise<Object>} Command result
+ */
+async function mcpInviteTeamMember(params) {
+  const {
+    session_id,
+    email,
+    role = 'viewer',
+    invited_by
+  } = params;
+
+  if (!session_id || !email) {
+    return {
+      success: false,
+      error: 'session_id and email are required',
+      command: 'invite_team_member',
+      timestamp: Date.now()
+    };
+  }
+
+  if (!collaborationManagers.team) {
+    return {
+      success: false,
+      error: 'Team management not initialized',
+      command: 'invite_team_member',
+      timestamp: Date.now()
+    };
+  }
+
+  const result = await collaborationManagers.team.sendInvite(session_id, {
+    email,
+    role,
+    invitedBy: invited_by
+  });
+
+  return {
+    ...result,
+    command: 'invite_team_member'
+  };
+}
+
+// Add collaboration commands to SessionCommands
+SessionCommands.share_session = mcpShareSession;
+SessionCommands.add_comment = mcpAddComment;
+SessionCommands.assign_evidence = mcpAssignEvidence;
+SessionCommands.invite_team_member = mcpInviteTeamMember;
+
+// Export collaboration functions
+if (typeof globalThis !== 'undefined') {
+  globalThis.initializeCollaboration = initializeCollaboration;
+  globalThis.getCollaborationManagers = getCollaborationManagers;
+  globalThis.mcpShareSession = mcpShareSession;
+  globalThis.mcpAddComment = mcpAddComment;
+  globalThis.mcpAssignEvidence = mcpAssignEvidence;
+  globalThis.mcpInviteTeamMember = mcpInviteTeamMember;
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports.initializeCollaboration = initializeCollaboration;
+  module.exports.getCollaborationManagers = getCollaborationManagers;
+  module.exports.mcpShareSession = mcpShareSession;
+  module.exports.mcpAddComment = mcpAddComment;
+  module.exports.mcpAssignEvidence = mcpAssignEvidence;
+  module.exports.mcpInviteTeamMember = mcpInviteTeamMember;
+}
+
+console.log('[SessionManager] Collaboration integration loaded');

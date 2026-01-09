@@ -1,0 +1,406 @@
+{
+  "$schema": "https://basset-hound.io/schemas/workflow/v1.0.0",
+  "id": "4d6e8f1a-5b7c-6d9e-1f2a-3c4d5e6f7a8b",
+  "name": "Profile Extraction from Search Results",
+  "description": "Extract all profiles from LinkedIn or similar search results, navigate to each profile, extract structured data, and capture evidence.",
+  "version": "1.0.0",
+  "author": "Basset Hound Team",
+  "tags": ["profile", "extraction", "linkedin", "search-results", "data-collection"],
+  "category": "general",
+  "inputs": [
+    {
+      "name": "searchUrl",
+      "type": "string",
+      "label": "Search Results URL",
+      "description": "URL of search results page (e.g., LinkedIn search)",
+      "required": true
+    },
+    {
+      "name": "profileLinkSelector",
+      "type": "string",
+      "label": "Profile Link Selector",
+      "description": "CSS selector for profile links (e.g., 'a.profile-link')",
+      "required": true,
+      "default": "a[href*='/in/']"
+    },
+    {
+      "name": "maxProfiles",
+      "type": "number",
+      "label": "Max Profiles to Extract",
+      "description": "Maximum number of profiles to process",
+      "required": false,
+      "default": 20,
+      "validation": {
+        "min": 1,
+        "max": 50
+      }
+    },
+    {
+      "name": "handlePagination",
+      "type": "boolean",
+      "label": "Handle Pagination",
+      "description": "Automatically navigate to next page of results",
+      "required": false,
+      "default": false
+    }
+  ],
+  "outputs": [
+    {
+      "name": "profiles",
+      "type": "array",
+      "description": "Extracted profile data"
+    },
+    {
+      "name": "totalExtracted",
+      "type": "number",
+      "description": "Total number of profiles extracted"
+    },
+    {
+      "name": "evidenceItems",
+      "type": "array",
+      "description": "Evidence captured for each profile"
+    }
+  ],
+  "variables": {
+    "profiles": [],
+    "profileLinks": [],
+    "totalExtracted": 0,
+    "currentPage": 1,
+    "evidenceItems": []
+  },
+  "config": {
+    "timeout": 1800000,
+    "retryPolicy": {
+      "enabled": true,
+      "maxRetries": 2,
+      "retryDelay": 3000,
+      "retryBackoff": "exponential"
+    },
+    "evidence": {
+      "captureScreenshots": true,
+      "captureDOM": false,
+      "captureNetwork": false
+    },
+    "execution": {
+      "mode": "sequential",
+      "maxParallel": 1,
+      "continueOnError": true
+    }
+  },
+  "steps": [
+    {
+      "id": "nav-search-results",
+      "name": "Navigate to Search Results",
+      "type": "navigate",
+      "description": "Navigate to the search results page",
+      "params": {
+        "url": "${searchUrl}",
+        "waitUntil": "networkidle2",
+        "timeout": 20000
+      },
+      "timeout": 25000,
+      "retries": 2
+    },
+    {
+      "id": "wait-results-load",
+      "name": "Wait for Results to Load",
+      "type": "wait",
+      "description": "Wait for search results to fully load",
+      "params": {
+        "for": "time",
+        "time": 3000
+      }
+    },
+    {
+      "id": "extract-profile-links",
+      "name": "Extract Profile Links",
+      "type": "script",
+      "description": "Extract all profile URLs from search results",
+      "params": {
+        "code": "const links = document.querySelectorAll(profileLinkSelector); const uniqueUrls = new Set(); links.forEach(link => { const url = link.href; if (url && uniqueUrls.size < maxProfiles) { uniqueUrls.add(url); } }); profileLinks = Array.from(uniqueUrls); console.log('Found ' + profileLinks.length + ' profile links'); return { linkCount: profileLinks.length, links: profileLinks };"
+      },
+      "outputs": {
+        "linkCount": "linkCount"
+      }
+    },
+    {
+      "id": "screenshot-search-results",
+      "name": "Screenshot Search Results",
+      "type": "screenshot",
+      "description": "Capture search results page",
+      "params": {
+        "fullPage": false,
+        "format": "png"
+      },
+      "outputs": {
+        "searchScreenshot": "dataUrl"
+      }
+    },
+    {
+      "id": "record-search-results",
+      "name": "Record Search Results Evidence",
+      "type": "script",
+      "description": "Add search results to evidence",
+      "params": {
+        "code": "evidenceItems.push({ type: 'search-results', url: searchUrl, linkCount: linkCount, screenshot: searchScreenshot, timestamp: Date.now() }); return { recorded: true };"
+      }
+    },
+    {
+      "id": "loop-profiles",
+      "name": "Loop Through Profiles",
+      "type": "loop",
+      "description": "Visit each profile and extract data",
+      "params": {
+        "items": "${profileLinks}",
+        "variable": "profileUrl",
+        "maxIterations": "${maxProfiles}",
+        "steps": [
+          {
+            "id": "nav-profile",
+            "name": "Navigate to Profile",
+            "type": "navigate",
+            "description": "Navigate to individual profile",
+            "params": {
+              "url": "${profileUrl}",
+              "waitUntil": "networkidle2",
+              "timeout": 20000
+            },
+            "timeout": 25000,
+            "retries": 2,
+            "continueOnError": true
+          },
+          {
+            "id": "wait-profile-load",
+            "name": "Wait for Profile Load",
+            "type": "wait",
+            "description": "Wait for profile content to load",
+            "params": {
+              "for": "time",
+              "time": 3000
+            },
+            "continueOnError": true
+          },
+          {
+            "id": "check-profile-accessible",
+            "name": "Check Profile Accessible",
+            "type": "script",
+            "description": "Check if profile is accessible (not 404 or private)",
+            "params": {
+              "code": "const bodyText = document.body.innerText; const isAccessible = !bodyText.includes('404') && !bodyText.includes('Page not found') && !bodyText.includes('Profile unavailable'); return { accessible: isAccessible };"
+            },
+            "outputs": {
+              "profileAccessible": "accessible"
+            },
+            "continueOnError": true
+          },
+          {
+            "id": "conditional-profile-accessible",
+            "name": "If Profile Accessible",
+            "type": "conditional",
+            "description": "Extract data only if profile is accessible",
+            "params": {
+              "condition": "profileAccessible === true",
+              "then": [
+                {
+                  "id": "extract-profile-data",
+                  "name": "Extract Profile Data",
+                  "type": "extract",
+                  "description": "Extract structured profile information",
+                  "params": {
+                    "mode": "structured",
+                    "selectors": {
+                      "name": "h1, .profile-name, .name, [data-test='profile-name']",
+                      "headline": ".headline, .profile-headline, .tagline, [data-test='profile-headline']",
+                      "location": ".location, .profile-location, [data-test='location']",
+                      "about": ".about, .summary, .profile-about, section[data-test='about'] div",
+                      "experience": ".experience, .work-experience, [data-test='experience'] div",
+                      "education": ".education, .school, [data-test='education'] div",
+                      "skills": ".skills, .skill, [data-test='skills'] li",
+                      "connections": ".connections, .connection-count, [data-test='connections']"
+                    }
+                  },
+                  "outputs": {
+                    "profileData": "result"
+                  },
+                  "continueOnError": true
+                },
+                {
+                  "id": "detect-profile-osint",
+                  "name": "Detect OSINT Patterns",
+                  "type": "detect",
+                  "description": "Detect email, phone, social media links",
+                  "params": {
+                    "patterns": ["email", "phone", "username"],
+                    "context": true,
+                    "highlight": false
+                  },
+                  "outputs": {
+                    "osintData": "results"
+                  },
+                  "continueOnError": true
+                },
+                {
+                  "id": "screenshot-profile",
+                  "name": "Screenshot Profile",
+                  "type": "screenshot",
+                  "description": "Capture profile page as evidence",
+                  "params": {
+                    "fullPage": true,
+                    "format": "png"
+                  },
+                  "outputs": {
+                    "profileScreenshot": "dataUrl"
+                  },
+                  "continueOnError": true
+                },
+                {
+                  "id": "record-profile",
+                  "name": "Record Profile Data",
+                  "type": "script",
+                  "description": "Add profile to results array",
+                  "params": {
+                    "code": "const profile = { url: profileUrl, data: profileData, osint: osintData, screenshot: profileScreenshot, extractedAt: Date.now() }; profiles.push(profile); totalExtracted++; evidenceItems.push({ type: 'profile', url: profileUrl, data: profileData, screenshot: profileScreenshot, timestamp: Date.now() }); console.log('Extracted profile #' + totalExtracted + ': ' + (profileData?.name || 'Unknown')); return { success: true, profileNumber: totalExtracted };"
+                  },
+                  "continueOnError": true
+                },
+                {
+                  "id": "ingest-profile",
+                  "name": "Ingest Profile",
+                  "type": "ingest",
+                  "description": "Send profile to basset-hound",
+                  "params": {
+                    "entityType": "person",
+                    "data": {
+                      "profileUrl": "${profileUrl}",
+                      "name": "${profileData.name}",
+                      "headline": "${profileData.headline}",
+                      "location": "${profileData.location}",
+                      "about": "${profileData.about}",
+                      "osintData": "${osintData}",
+                      "evidence": {
+                        "screenshot": "${profileScreenshot}",
+                        "timestamp": "${Date.now()}"
+                      }
+                    }
+                  },
+                  "outputs": {
+                    "entityId": "id"
+                  },
+                  "continueOnError": true
+                }
+              ],
+              "else": [
+                {
+                  "id": "log-profile-inaccessible",
+                  "name": "Log Inaccessible Profile",
+                  "type": "script",
+                  "description": "Log profile skip reason",
+                  "params": {
+                    "code": "console.log('Profile inaccessible: ' + profileUrl); return { skipped: true };"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "rate-limit-delay",
+            "name": "Rate Limit Delay",
+            "type": "wait",
+            "description": "Wait 3 seconds between profiles",
+            "params": {
+              "for": "time",
+              "time": 3000
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "conditional-pagination",
+      "name": "Handle Pagination",
+      "type": "conditional",
+      "description": "Navigate to next page if pagination enabled",
+      "params": {
+        "condition": "handlePagination === true && totalExtracted < maxProfiles",
+        "then": [
+          {
+            "id": "find-next-page",
+            "name": "Find Next Page Button",
+            "type": "script",
+            "description": "Look for next page button",
+            "params": {
+              "code": "const nextButton = document.querySelector('.next-page, .pagination-next, button[aria-label*=\"Next\"]'); return { hasNextPage: nextButton !== null, nextButtonExists: nextButton !== null };"
+            },
+            "outputs": {
+              "hasNextPage": "hasNextPage"
+            }
+          },
+          {
+            "id": "conditional-next-page",
+            "name": "If Next Page Exists",
+            "type": "conditional",
+            "description": "Click next page if exists",
+            "params": {
+              "condition": "hasNextPage === true",
+              "then": [
+                {
+                  "id": "click-next-page",
+                  "name": "Click Next Page",
+                  "type": "click",
+                  "description": "Click next page button",
+                  "params": {
+                    "selector": ".next-page, .pagination-next, button[aria-label*='Next']",
+                    "waitAfter": 3000,
+                    "scrollIntoView": true
+                  },
+                  "continueOnError": true
+                },
+                {
+                  "id": "increment-page",
+                  "name": "Increment Page Counter",
+                  "type": "script",
+                  "description": "Increment page number",
+                  "params": {
+                    "code": "currentPage++; console.log('Moved to page ' + currentPage); return { page: currentPage };"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "generate-extraction-report",
+      "name": "Generate Extraction Report",
+      "type": "script",
+      "description": "Create comprehensive extraction report",
+      "params": {
+        "code": "const report = { searchUrl: searchUrl, timestamp: new Date().toISOString(), results: { totalLinksFound: profileLinks.length, totalExtracted: totalExtracted, successRate: Math.round((totalExtracted / profileLinks.length) * 100) + '%' }, profiles: profiles.map(p => ({ url: p.url, name: p.data?.name || 'Unknown', headline: p.data?.headline || 'N/A', location: p.data?.location || 'N/A' })), evidence: { totalItems: evidenceItems.length, screenshots: evidenceItems.filter(e => e.screenshot).length, profiles: evidenceItems.filter(e => e.type === 'profile').length }, summary: `Extracted ${totalExtracted} profiles from ${profileLinks.length} links found on ${searchUrl}.` }; console.log('Extraction Report:', JSON.stringify(report, null, 2)); return report;"
+      },
+      "outputs": {
+        "report": "result"
+      }
+    },
+    {
+      "id": "ingest-batch",
+      "name": "Ingest Batch Results",
+      "type": "ingest",
+      "description": "Send batch extraction results to basset-hound",
+      "params": {
+        "entityType": "investigation",
+        "data": {
+          "type": "profile-extraction",
+          "searchUrl": "${searchUrl}",
+          "report": "${report}",
+          "profiles": "${profiles}",
+          "evidence": "${evidenceItems}",
+          "timestamp": "${Date.now()}"
+        }
+      },
+      "outputs": {
+        "investigationId": "id"
+      }
+    }
+  ]
+}

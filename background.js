@@ -134,6 +134,28 @@ try {
   console.error('[Basset Hound] Failed to load Phase 14 evidence modules:', e.message);
 }
 
+try {
+  console.log('[Basset Hound] Importing Phase 16 document scanning modules...');
+  importScripts('utils/extraction/pdf-extractor.js');
+  importScripts('utils/extraction/image-ocr.js');
+  importScripts('utils/extraction/table-parser.js');
+  console.log('[Basset Hound] Phase 16 document scanning modules loaded successfully');
+} catch (e) {
+  console.error('[Basset Hound] Failed to load Phase 16 document scanning modules:', e.message);
+}
+
+try {
+  console.log('[Basset Hound] Importing Phase 17 workflow automation modules...');
+  importScripts('utils/workflow/error-handler.js');
+  importScripts('utils/workflow/execution-context.js');
+  importScripts('utils/workflow/step-executor.js');
+  importScripts('utils/workflow/workflow-executor.js');
+  importScripts('utils/workflow/workflow-manager.js');
+  console.log('[Basset Hound] Phase 17 workflow automation modules loaded successfully');
+} catch (e) {
+  console.error('[Basset Hound] Failed to load Phase 17 workflow automation modules:', e.message);
+}
+
 console.log('[Basset Hound] All imports completed, initializing...');
 
 // Initialize logger for background script
@@ -933,7 +955,27 @@ const commandHandlers = {
   export_evidence_session: handleExportEvidenceSession,
   toggle_session_panel: handleToggleSessionPanel,
   capture_page_forensics: handleCapturePageForensics,
-  capture_browser_snapshot: handleCaptureBrowserSnapshot
+  capture_browser_snapshot: handleCaptureBrowserSnapshot,
+  // Phase 16 Document Scanning Commands (PDF, OCR, Tables)
+  extract_pdf_text: handleExtractPdfText,
+  extract_image_text: handleExtractImageText,
+  extract_tables: handleExtractTables,
+  detect_pdfs: handleDetectPdfs,
+  detect_text_images: handleDetectTextImages,
+  search_in_pdf: handleSearchInPdf,
+  export_extraction: handleExportExtraction,
+  // Phase 17 Workflow Automation Commands
+  create_workflow: handleCreateWorkflow,
+  get_workflow: handleGetWorkflow,
+  update_workflow: handleUpdateWorkflow,
+  delete_workflow: handleDeleteWorkflow,
+  list_workflows: handleListWorkflows,
+  execute_workflow: handleExecuteWorkflow,
+  pause_workflow: handlePauseWorkflow,
+  resume_workflow: handleResumeWorkflow,
+  cancel_workflow: handleCancelWorkflow,
+  get_workflow_status: handleGetWorkflowStatus,
+  list_executions: handleListExecutions
 };
 
 // =============================================================================
@@ -9123,8 +9165,873 @@ async function handleCaptureBrowserSnapshot(params = {}) {
   }
 }
 
+// =============================================================================
+// Phase 16: Document Scanning Command Handlers (PDF, OCR, Tables)
+// =============================================================================
+
+/**
+ * Extract text from PDF document
+ * @param {Object} params - Command parameters
+ * @param {string} params.url - URL of PDF to extract
+ * @param {number} params.maxPages - Maximum pages to extract
+ * @returns {Promise<Object>} - Extraction results
+ */
+async function handleExtractPdfText(params = {}) {
+  const { url, maxPages, tabId } = params;
+  const targetTabId = tabId || (await getActiveTab()).id;
+
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId: targetTabId },
+      func: async (extractUrl, options) => {
+        // Initialize PDF extractor if not already loaded
+        if (typeof PDFExtractor === 'undefined') {
+          throw new Error('PDFExtractor not loaded');
+        }
+
+        const extractor = new PDFExtractor();
+        await extractor.initialize();
+
+        if (extractUrl) {
+          // Extract from specific URL
+          return await extractor.extractTextFromURL(extractUrl, options);
+        } else {
+          // Extract from all PDFs on page
+          return await extractor.extractFromPage(options);
+        }
+      },
+      args: [url || null, { maxPages: maxPages || 50 }]
+    });
+
+    return {
+      success: true,
+      command: 'extract_pdf_text',
+      result: result[0].result
+    };
+  } catch (error) {
+    logger.error('Failed to extract PDF text', { error: error.message });
+    throw new Error(`Failed to extract PDF text: ${error.message}`);
+  }
+}
+
+/**
+ * Extract text from images using OCR
+ * @param {Object} params - Command parameters
+ * @param {string} params.imageUrl - URL of specific image to process
+ * @param {number} params.maxImages - Maximum images to process
+ * @param {string} params.language - OCR language (default: 'eng')
+ * @returns {Promise<Object>} - OCR results
+ */
+async function handleExtractImageText(params = {}) {
+  const { imageUrl, maxImages, language, threshold, tabId } = params;
+  const targetTabId = tabId || (await getActiveTab()).id;
+
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId: targetTabId },
+      func: async (imgUrl, options) => {
+        // Initialize ImageOCR if not already loaded
+        if (typeof ImageOCR === 'undefined') {
+          throw new Error('ImageOCR not loaded');
+        }
+
+        const ocr = new ImageOCR();
+        await ocr.initialize();
+
+        if (imgUrl) {
+          // Process specific image
+          return await ocr.extractText(imgUrl, options);
+        } else {
+          // Process all detected text images on page
+          return await ocr.extractFromPage(options);
+        }
+      },
+      args: [
+        imageUrl || null,
+        {
+          maxImages: maxImages || 10,
+          language: language || 'eng',
+          threshold: threshold || 0.3
+        }
+      ]
+    });
+
+    return {
+      success: true,
+      command: 'extract_image_text',
+      result: result[0].result
+    };
+  } catch (error) {
+    logger.error('Failed to extract image text', { error: error.message });
+    throw new Error(`Failed to extract image text: ${error.message}`);
+  }
+}
+
+/**
+ * Extract and parse tables from page
+ * @param {Object} params - Command parameters
+ * @param {string} params.selector - CSS selector for specific table
+ * @param {number} params.maxTables - Maximum tables to extract
+ * @param {number} params.minRows - Minimum rows required
+ * @param {boolean} params.analyzeOSINT - Whether to analyze for OSINT data
+ * @returns {Promise<Object>} - Parsed table data
+ */
+async function handleExtractTables(params = {}) {
+  const { selector, maxTables, minRows, analyzeOSINT, tabId } = params;
+  const targetTabId = tabId || (await getActiveTab()).id;
+
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId: targetTabId },
+      func: (tableSelector, options) => {
+        // Initialize TableParser if not already loaded
+        if (typeof TableParser === 'undefined') {
+          throw new Error('TableParser not loaded');
+        }
+
+        const parser = new TableParser();
+
+        if (tableSelector) {
+          // Parse specific table
+          const table = document.querySelector(tableSelector);
+          if (!table) {
+            throw new Error(`Table not found: ${tableSelector}`);
+          }
+          return parser.parseHTMLTable(table, options);
+        } else {
+          // Parse all tables on page
+          return parser.parsePageTables(options);
+        }
+      },
+      args: [
+        selector || null,
+        {
+          maxTables: maxTables || Infinity,
+          minRows: minRows || 0,
+          analyzeOSINT: analyzeOSINT !== false,
+          detectTypes: true
+        }
+      ]
+    });
+
+    return {
+      success: true,
+      command: 'extract_tables',
+      result: result[0].result
+    };
+  } catch (error) {
+    logger.error('Failed to extract tables', { error: error.message });
+    throw new Error(`Failed to extract tables: ${error.message}`);
+  }
+}
+
+/**
+ * Detect embedded PDFs on page
+ * @param {Object} params - Command parameters
+ * @returns {Promise<Object>} - Detected PDFs
+ */
+async function handleDetectPdfs(params = {}) {
+  const { tabId } = params;
+  const targetTabId = tabId || (await getActiveTab()).id;
+
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId: targetTabId },
+      func: () => {
+        if (typeof PDFExtractor === 'undefined') {
+          throw new Error('PDFExtractor not loaded');
+        }
+
+        const extractor = new PDFExtractor();
+        const detected = extractor.detectEmbeddedPDFs();
+
+        return {
+          success: true,
+          pdfs: detected,
+          count: detected.length
+        };
+      }
+    });
+
+    return {
+      success: true,
+      command: 'detect_pdfs',
+      result: result[0].result
+    };
+  } catch (error) {
+    logger.error('Failed to detect PDFs', { error: error.message });
+    throw new Error(`Failed to detect PDFs: ${error.message}`);
+  }
+}
+
+/**
+ * Detect images likely to contain text
+ * @param {Object} params - Command parameters
+ * @param {number} params.threshold - Text likelihood threshold
+ * @returns {Promise<Object>} - Detected text images
+ */
+async function handleDetectTextImages(params = {}) {
+  const { threshold, tabId } = params;
+  const targetTabId = tabId || (await getActiveTab()).id;
+
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId: targetTabId },
+      func: (minThreshold) => {
+        if (typeof ImageOCR === 'undefined') {
+          throw new Error('ImageOCR not loaded');
+        }
+
+        const ocr = new ImageOCR();
+        const detected = ocr.detectTextImages({ threshold: minThreshold });
+
+        return {
+          success: true,
+          images: detected,
+          count: detected.length
+        };
+      },
+      args: [threshold || 0.3]
+    });
+
+    return {
+      success: true,
+      command: 'detect_text_images',
+      result: result[0].result
+    };
+  } catch (error) {
+    logger.error('Failed to detect text images', { error: error.message });
+    throw new Error(`Failed to detect text images: ${error.message}`);
+  }
+}
+
+/**
+ * Search for text in PDF
+ * @param {Object} params - Command parameters
+ * @param {string} params.url - PDF URL
+ * @param {string} params.searchText - Text to search for
+ * @param {boolean} params.caseSensitive - Case sensitive search
+ * @returns {Promise<Object>} - Search results
+ */
+async function handleSearchInPdf(params = {}) {
+  const { url, searchText, caseSensitive, tabId } = params;
+
+  if (!url || !searchText) {
+    throw new Error('URL and searchText parameters are required');
+  }
+
+  const targetTabId = tabId || (await getActiveTab()).id;
+
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId: targetTabId },
+      func: async (pdfUrl, search, options) => {
+        if (typeof PDFExtractor === 'undefined') {
+          throw new Error('PDFExtractor not loaded');
+        }
+
+        const extractor = new PDFExtractor();
+        await extractor.initialize();
+
+        return await extractor.searchInPDF(pdfUrl, search, options);
+      },
+      args: [url, searchText, { caseSensitive: caseSensitive || false }]
+    });
+
+    return {
+      success: true,
+      command: 'search_in_pdf',
+      result: result[0].result
+    };
+  } catch (error) {
+    logger.error('Failed to search in PDF', { error: error.message });
+    throw new Error(`Failed to search in PDF: ${error.message}`);
+  }
+}
+
+/**
+ * Export extraction results to various formats
+ * @param {Object} params - Command parameters
+ * @param {Object} params.data - Extraction data to export
+ * @param {string} params.format - Export format (json, csv, txt, etc.)
+ * @param {string} params.type - Extraction type (pdf, ocr, table)
+ * @returns {Promise<Object>} - Export results
+ */
+async function handleExportExtraction(params = {}) {
+  const { data, format, type } = params;
+
+  if (!data) {
+    throw new Error('Data parameter is required');
+  }
+
+  try {
+    let exported;
+    const exportFormat = format || 'json';
+
+    // Export based on extraction type
+    switch (type) {
+      case 'pdf':
+        if (typeof PDFExtractor !== 'undefined') {
+          const extractor = new PDFExtractor();
+          exported = extractor.exportResults(data, exportFormat);
+        } else {
+          exported = JSON.stringify(data, null, 2);
+        }
+        break;
+
+      case 'ocr':
+        if (typeof ImageOCR !== 'undefined') {
+          const ocr = new ImageOCR();
+          exported = ocr.exportResults(data, exportFormat);
+        } else {
+          exported = JSON.stringify(data, null, 2);
+        }
+        break;
+
+      case 'table':
+        if (typeof TableParser !== 'undefined') {
+          const parser = new TableParser();
+          exported = parser.exportTable(data, exportFormat);
+        } else {
+          exported = JSON.stringify(data, null, 2);
+        }
+        break;
+
+      default:
+        exported = JSON.stringify(data, null, 2);
+    }
+
+    return {
+      success: true,
+      command: 'export_extraction',
+      format: exportFormat,
+      type: type,
+      data: exported
+    };
+  } catch (error) {
+    logger.error('Failed to export extraction', { error: error.message });
+    throw new Error(`Failed to export extraction: ${error.message}`);
+  }
+}
+
+// =============================================================================
+// Phase 17: Workflow Automation Command Handlers
+// =============================================================================
+
+// Initialize workflow system
+let workflowManager = null;
+let workflowExecutor = null;
+
+try {
+  workflowManager = new WorkflowManager();
+  workflowExecutor = new WorkflowExecutor();
+  logger.info('Workflow automation system initialized');
+} catch (error) {
+  logger.error('Failed to initialize workflow system', { error: error.message });
+}
+
+/**
+ * Create a new workflow
+ * @param {Object} params - Workflow definition
+ * @returns {Promise<Object>} Created workflow
+ */
+async function handleCreateWorkflow(params = {}) {
+  logger.info('Creating workflow', { name: params.name });
+
+  if (!workflowManager) {
+    throw new Error('WorkflowManager not available');
+  }
+
+  try {
+    const workflow = await workflowManager.createWorkflow(params);
+
+    if (typeof auditLogger !== 'undefined') {
+      auditLogger.log('workflow_created', {
+        workflowId: workflow.id,
+        name: workflow.name,
+        category: workflow.category
+      }, 'info');
+    }
+
+    return {
+      success: true,
+      command: 'create_workflow',
+      workflow: {
+        id: workflow.id,
+        name: workflow.name,
+        version: workflow.version,
+        createdAt: workflow.createdAt
+      },
+      timestamp: Date.now()
+    };
+  } catch (error) {
+    logger.error('Failed to create workflow', { error: error.message });
+    throw new Error(`Failed to create workflow: ${error.message}`);
+  }
+}
+
+/**
+ * Get a workflow by ID
+ * @param {Object} params - { workflowId }
+ * @returns {Promise<Object>} Workflow definition
+ */
+async function handleGetWorkflow(params = {}) {
+  const { workflowId } = params;
+
+  if (!workflowId) {
+    throw new Error('workflowId parameter is required');
+  }
+
+  logger.info('Getting workflow', { workflowId });
+
+  if (!workflowManager) {
+    throw new Error('WorkflowManager not available');
+  }
+
+  try {
+    const workflow = await workflowManager.getWorkflow(workflowId);
+
+    if (!workflow) {
+      return {
+        success: false,
+        command: 'get_workflow',
+        error: 'Workflow not found',
+        timestamp: Date.now()
+      };
+    }
+
+    return {
+      success: true,
+      command: 'get_workflow',
+      workflow,
+      timestamp: Date.now()
+    };
+  } catch (error) {
+    logger.error('Failed to get workflow', { error: error.message });
+    throw new Error(`Failed to get workflow: ${error.message}`);
+  }
+}
+
+/**
+ * Update an existing workflow
+ * @param {Object} params - { workflowId, ...updates }
+ * @returns {Promise<Object>} Updated workflow
+ */
+async function handleUpdateWorkflow(params = {}) {
+  const { workflowId, ...updates } = params;
+
+  if (!workflowId) {
+    throw new Error('workflowId parameter is required');
+  }
+
+  logger.info('Updating workflow', { workflowId });
+
+  if (!workflowManager) {
+    throw new Error('WorkflowManager not available');
+  }
+
+  try {
+    const workflow = await workflowManager.updateWorkflow(workflowId, updates);
+
+    if (typeof auditLogger !== 'undefined') {
+      auditLogger.log('workflow_updated', {
+        workflowId: workflow.id,
+        name: workflow.name
+      }, 'info');
+    }
+
+    return {
+      success: true,
+      command: 'update_workflow',
+      workflow: {
+        id: workflow.id,
+        name: workflow.name,
+        version: workflow.version,
+        updatedAt: workflow.updatedAt
+      },
+      timestamp: Date.now()
+    };
+  } catch (error) {
+    logger.error('Failed to update workflow', { error: error.message });
+    throw new Error(`Failed to update workflow: ${error.message}`);
+  }
+}
+
+/**
+ * Delete a workflow
+ * @param {Object} params - { workflowId }
+ * @returns {Promise<Object>} Deletion result
+ */
+async function handleDeleteWorkflow(params = {}) {
+  const { workflowId } = params;
+
+  if (!workflowId) {
+    throw new Error('workflowId parameter is required');
+  }
+
+  logger.info('Deleting workflow', { workflowId });
+
+  if (!workflowManager) {
+    throw new Error('WorkflowManager not available');
+  }
+
+  try {
+    await workflowManager.deleteWorkflow(workflowId);
+
+    if (typeof auditLogger !== 'undefined') {
+      auditLogger.log('workflow_deleted', { workflowId }, 'info');
+    }
+
+    return {
+      success: true,
+      command: 'delete_workflow',
+      workflowId,
+      timestamp: Date.now()
+    };
+  } catch (error) {
+    logger.error('Failed to delete workflow', { error: error.message });
+    throw new Error(`Failed to delete workflow: ${error.message}`);
+  }
+}
+
+/**
+ * List all workflows
+ * @param {Object} params - Filter and sort options
+ * @returns {Promise<Object>} List of workflows
+ */
+async function handleListWorkflows(params = {}) {
+  logger.info('Listing workflows', params);
+
+  if (!workflowManager) {
+    throw new Error('WorkflowManager not available');
+  }
+
+  try {
+    const workflows = await workflowManager.listWorkflows(params);
+
+    return {
+      success: true,
+      command: 'list_workflows',
+      workflows: workflows.map(w => ({
+        id: w.id,
+        name: w.name,
+        description: w.description,
+        category: w.category,
+        tags: w.tags,
+        version: w.version,
+        stepCount: w.steps?.length || 0,
+        createdAt: w.createdAt,
+        updatedAt: w.updatedAt
+      })),
+      count: workflows.length,
+      timestamp: Date.now()
+    };
+  } catch (error) {
+    logger.error('Failed to list workflows', { error: error.message });
+    throw new Error(`Failed to list workflows: ${error.message}`);
+  }
+}
+
+/**
+ * Execute a workflow
+ * @param {Object} params - { workflowId, inputs, tabId }
+ * @returns {Promise<Object>} Execution result
+ */
+async function handleExecuteWorkflow(params = {}) {
+  const { workflowId, inputs = {}, tabId } = params;
+
+  if (!workflowId) {
+    throw new Error('workflowId parameter is required');
+  }
+
+  logger.info('Executing workflow', { workflowId, inputs });
+
+  if (!workflowManager || !workflowExecutor) {
+    throw new Error('Workflow system not available');
+  }
+
+  try {
+    // Get workflow definition
+    const workflow = await workflowManager.getWorkflow(workflowId);
+
+    if (!workflow) {
+      throw new Error(`Workflow not found: ${workflowId}`);
+    }
+
+    // Execute workflow
+    const result = await workflowExecutor.execute(workflow, inputs, { tabId });
+
+    if (typeof auditLogger !== 'undefined') {
+      auditLogger.log('workflow_executed', {
+        workflowId: workflow.id,
+        executionId: result.executionId,
+        success: result.success
+      }, result.success ? 'info' : 'error');
+    }
+
+    return {
+      success: result.success,
+      command: 'execute_workflow',
+      executionId: result.executionId,
+      outputs: result.outputs || {},
+      evidence: result.evidence || [],
+      duration: result.duration,
+      error: result.error || null,
+      timestamp: Date.now()
+    };
+  } catch (error) {
+    logger.error('Failed to execute workflow', { error: error.message });
+    throw new Error(`Failed to execute workflow: ${error.message}`);
+  }
+}
+
+/**
+ * Pause a running workflow
+ * @param {Object} params - { executionId }
+ * @returns {Promise<Object>} Pause result
+ */
+async function handlePauseWorkflow(params = {}) {
+  const { executionId } = params;
+
+  if (!executionId) {
+    throw new Error('executionId parameter is required');
+  }
+
+  logger.info('Pausing workflow', { executionId });
+
+  if (!workflowExecutor) {
+    throw new Error('WorkflowExecutor not available');
+  }
+
+  try {
+    await workflowExecutor.pauseWorkflow(executionId);
+
+    return {
+      success: true,
+      command: 'pause_workflow',
+      executionId,
+      timestamp: Date.now()
+    };
+  } catch (error) {
+    logger.error('Failed to pause workflow', { error: error.message });
+    throw new Error(`Failed to pause workflow: ${error.message}`);
+  }
+}
+
+/**
+ * Resume a paused workflow
+ * @param {Object} params - { executionId }
+ * @returns {Promise<Object>} Resume result
+ */
+async function handleResumeWorkflow(params = {}) {
+  const { executionId } = params;
+
+  if (!executionId) {
+    throw new Error('executionId parameter is required');
+  }
+
+  logger.info('Resuming workflow', { executionId });
+
+  if (!workflowExecutor) {
+    throw new Error('WorkflowExecutor not available');
+  }
+
+  try {
+    await workflowExecutor.resumeWorkflow(executionId);
+
+    return {
+      success: true,
+      command: 'resume_workflow',
+      executionId,
+      timestamp: Date.now()
+    };
+  } catch (error) {
+    logger.error('Failed to resume workflow', { error: error.message });
+    throw new Error(`Failed to resume workflow: ${error.message}`);
+  }
+}
+
+/**
+ * Cancel a running workflow
+ * @param {Object} params - { executionId, reason }
+ * @returns {Promise<Object>} Cancel result
+ */
+async function handleCancelWorkflow(params = {}) {
+  const { executionId, reason } = params;
+
+  if (!executionId) {
+    throw new Error('executionId parameter is required');
+  }
+
+  logger.info('Cancelling workflow', { executionId, reason });
+
+  if (!workflowExecutor) {
+    throw new Error('WorkflowExecutor not available');
+  }
+
+  try {
+    await workflowExecutor.cancelWorkflow(executionId, reason);
+
+    if (typeof auditLogger !== 'undefined') {
+      auditLogger.log('workflow_cancelled', {
+        executionId,
+        reason: reason || 'User cancelled'
+      }, 'warn');
+    }
+
+    return {
+      success: true,
+      command: 'cancel_workflow',
+      executionId,
+      timestamp: Date.now()
+    };
+  } catch (error) {
+    logger.error('Failed to cancel workflow', { error: error.message });
+    throw new Error(`Failed to cancel workflow: ${error.message}`);
+  }
+}
+
+/**
+ * Get workflow execution status
+ * @param {Object} params - { executionId }
+ * @returns {Promise<Object>} Execution status
+ */
+async function handleGetWorkflowStatus(params = {}) {
+  const { executionId } = params;
+
+  if (!executionId) {
+    throw new Error('executionId parameter is required');
+  }
+
+  logger.info('Getting workflow status', { executionId });
+
+  if (!workflowExecutor) {
+    throw new Error('WorkflowExecutor not available');
+  }
+
+  try {
+    const status = await workflowExecutor.getWorkflowStatus(executionId);
+
+    return {
+      success: true,
+      command: 'get_workflow_status',
+      status,
+      timestamp: Date.now()
+    };
+  } catch (error) {
+    logger.error('Failed to get workflow status', { error: error.message });
+    throw new Error(`Failed to get workflow status: ${error.message}`);
+  }
+}
+
+/**
+ * List workflow executions
+ * @param {Object} params - Filter options
+ * @returns {Promise<Object>} List of executions
+ */
+async function handleListExecutions(params = {}) {
+  logger.info('Listing workflow executions', params);
+
+  if (!workflowExecutor) {
+    throw new Error('WorkflowExecutor not available');
+  }
+
+  try {
+    const executions = await workflowExecutor.listExecutions(params);
+
+    return {
+      success: true,
+      command: 'list_executions',
+      executions,
+      count: executions.length,
+      timestamp: Date.now()
+    };
+  } catch (error) {
+    logger.error('Failed to list executions', { error: error.message });
+    throw new Error(`Failed to list executions: ${error.message}`);
+  }
+}
+
+// =============================================================================
+// Initialization
+// =============================================================================
+
 // Log that background script has loaded
 logger.info('Background service worker initialized');
 
 // Attempt initial connection
 connectWebSocket();
+
+// =============================================================================
+// Collaboration Command Handlers (Phase 18.1)
+// =============================================================================
+
+/**
+ * Handle collaboration-related commands
+ */
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (!message || !message.type) return;
+
+  // Collaboration commands
+  if (message.type.startsWith('collab_') || message.type === 'get_team_members' || 
+      message.type === 'get_comments' || message.type === 'get_assignments' || 
+      message.type === 'get_share_links') {
+    
+    handleCollaborationCommand(message).then(sendResponse);
+    return true; // Keep channel open for async response
+  }
+});
+
+/**
+ * Handle collaboration command
+ * @param {Object} message - Command message
+ * @returns {Promise<Object>} Command result
+ */
+async function handleCollaborationCommand(message) {
+  const { type } = message;
+
+  try {
+    switch (type) {
+      case 'collab_init':
+        return await initializeCollaboration(message.sessionId, message.options || {});
+
+      case 'get_team_members':
+        return await getTeamMembers(message.sessionId);
+
+      case 'collab_invite_member':
+        return await inviteTeamMember(message.sessionId, message.email, message.role);
+
+      case 'get_comments':
+        return await getSessionComments(message.sessionId);
+
+      case 'collab_add_comment':
+        return await addComment(message.sessionId, message.content, message.options);
+
+      case 'get_assignments':
+        return await getSessionAssignments(message.sessionId);
+
+      case 'collab_create_assignment':
+        return await createAssignment(message.assignmentData);
+
+      case 'get_share_links':
+        return await getShareLinks(message.sessionId);
+
+      case 'collab_create_share_link':
+        return await createShareLink(message.sessionId, message.options);
+
+      default:
+        return {
+          success: false,
+          error: 'Unknown collaboration command: ' + type
+        };
+    }
+  } catch (error) {
+    console.error('[Background] Collaboration command error:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+console.log('[Background] Collaboration command handlers loaded');

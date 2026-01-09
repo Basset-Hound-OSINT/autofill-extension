@@ -8710,3 +8710,263 @@ document.addEventListener('keydown', (e) => {
     }
   }
 });
+
+// =============================================================================
+// Phase 16.2: Dynamic Content Detection
+// =============================================================================
+
+// Dynamic detection instances
+let mutationDetector = null;
+let scrollDetector = null;
+let spaDetector = null;
+let isDynamicDetectionEnabled = false;
+
+/**
+ * Initialize dynamic content detection
+ * @param {Object} options - Configuration options
+ */
+function initializeDynamicDetection(options = {}) {
+  if (isDynamicDetectionEnabled) {
+    console.warn('[DynamicDetection] Already initialized');
+    return;
+  }
+
+  const {
+    enableMutations = true,
+    enableScroll = true,
+    enableSPA = true,
+    autoStart = true
+  } = options;
+
+  contentLogger.info('Initializing dynamic content detection', options);
+
+  // Get OSINT patterns from field detector
+  const fieldDetector = getOSINTFieldDetector();
+  const patterns = fieldDetector ? OSINTPatterns : {};
+
+  // Initialize mutation detector
+  if (enableMutations && typeof MutationDetector !== 'undefined') {
+    mutationDetector = new MutationDetector({
+      patterns: patterns,
+      onDetection: handleDynamicDetection,
+      onStatusChange: (status) => {
+        contentLogger.debug('[MutationDetector] Status:', status);
+      }
+    });
+
+    if (autoStart) {
+      mutationDetector.start();
+      contentLogger.info('[MutationDetector] Started');
+    }
+  }
+
+  // Initialize scroll detector
+  if (enableScroll && typeof ScrollDetector !== 'undefined') {
+    scrollDetector = new ScrollDetector({
+      onNewContent: (data) => {
+        contentLogger.debug('[ScrollDetector] New content:', data);
+        // Trigger scan of new content
+        if (mutationDetector && mutationDetector.isActive) {
+          mutationDetector.forceScan();
+        }
+      },
+      onStatusChange: (status) => {
+        contentLogger.debug('[ScrollDetector] Status:', status);
+      }
+    });
+
+    if (autoStart) {
+      scrollDetector.start();
+      contentLogger.info('[ScrollDetector] Started');
+    }
+  }
+
+  // Initialize SPA detector
+  if (enableSPA && typeof SPADetector !== 'undefined') {
+    spaDetector = new SPADetector({
+      onRouteChange: (data) => {
+        contentLogger.info('[SPADetector] Route changed:', data);
+
+        // Clear old detections and re-scan
+        if (fieldDetector) {
+          fieldDetector.clearHighlights();
+        }
+
+        // Trigger new scan after route change
+        setTimeout(() => {
+          handleDetectOSINT({ source: 'spa-navigation' });
+        }, 500);
+      },
+      onStatusChange: (status) => {
+        contentLogger.debug('[SPADetector] Status:', status);
+      }
+    });
+
+    if (autoStart) {
+      spaDetector.start();
+      contentLogger.info('[SPADetector] Started');
+    }
+  }
+
+  isDynamicDetectionEnabled = true;
+}
+
+/**
+ * Handle detections from dynamic content
+ * @param {Object} data - Detection data
+ */
+function handleDynamicDetection(data) {
+  const { detections, source, timestamp } = data;
+
+  contentLogger.info(`[DynamicDetection] Found ${detections.length} patterns from ${source}`);
+
+  // Send to background script
+  try {
+    chrome.runtime.sendMessage({
+      type: 'dynamic_detection',
+      data: {
+        detections,
+        source,
+        timestamp,
+        url: window.location.href
+      }
+    });
+  } catch (error) {
+    contentLogger.error('Failed to send dynamic detection message', { error: error.message });
+  }
+
+  // Highlight if detector is available
+  const fieldDetector = getOSINTFieldDetector();
+  if (fieldDetector && detections.length > 0) {
+    // Convert to field detector format
+    const findings = detections.map(d => ({
+      type: d.type,
+      value: d.value,
+      confidence: d.confidence,
+      context: d.context,
+      source: 'dynamic'
+    }));
+
+    // Auto-highlight if enabled
+    // fieldDetector.highlightOnPage(findings);
+  }
+}
+
+/**
+ * Start dynamic detection
+ */
+function startDynamicDetection() {
+  if (!isDynamicDetectionEnabled) {
+    initializeDynamicDetection({ autoStart: true });
+    return { success: true, message: 'Dynamic detection initialized and started' };
+  }
+
+  if (mutationDetector && !mutationDetector.isActive) {
+    mutationDetector.start();
+  }
+
+  if (scrollDetector && !scrollDetector.isActive) {
+    scrollDetector.start();
+  }
+
+  if (spaDetector && !spaDetector.isActive) {
+    spaDetector.start();
+  }
+
+  return { success: true, message: 'Dynamic detection started' };
+}
+
+/**
+ * Stop dynamic detection
+ */
+function stopDynamicDetection() {
+  if (mutationDetector && mutationDetector.isActive) {
+    mutationDetector.stop();
+  }
+
+  if (scrollDetector && scrollDetector.isActive) {
+    scrollDetector.stop();
+  }
+
+  if (spaDetector && spaDetector.isActive) {
+    spaDetector.stop();
+  }
+
+  return { success: true, message: 'Dynamic detection stopped' };
+}
+
+/**
+ * Pause dynamic detection
+ */
+function pauseDynamicDetection() {
+  if (mutationDetector) {
+    mutationDetector.pause();
+  }
+
+  if (scrollDetector) {
+    scrollDetector.pause();
+  }
+
+  if (spaDetector) {
+    spaDetector.pause();
+  }
+
+  return { success: true, message: 'Dynamic detection paused' };
+}
+
+/**
+ * Resume dynamic detection
+ */
+function resumeDynamicDetection() {
+  if (mutationDetector) {
+    mutationDetector.resume();
+  }
+
+  if (scrollDetector) {
+    scrollDetector.resume();
+  }
+
+  if (spaDetector) {
+    spaDetector.resume();
+  }
+
+  return { success: true, message: 'Dynamic detection resumed' };
+}
+
+/**
+ * Get dynamic detection statistics
+ */
+function getDynamicDetectionStats() {
+  return {
+    enabled: isDynamicDetectionEnabled,
+    mutation: mutationDetector ? {
+      active: mutationDetector.isActive,
+      paused: mutationDetector.isPaused,
+      stats: mutationDetector.getStats()
+    } : null,
+    scroll: scrollDetector ? {
+      active: scrollDetector.isActive,
+      paused: scrollDetector.isPaused,
+      stats: scrollDetector.getStats()
+    } : null,
+    spa: spaDetector ? {
+      active: spaDetector.isActive,
+      paused: spaDetector.isPaused,
+      stats: spaDetector.getStats()
+    } : null
+  };
+}
+
+// Auto-initialize on page load (with delay to let page settle)
+setTimeout(() => {
+  // Only auto-start if field detector is available
+  if (typeof OSINTFieldDetector !== 'undefined' &&
+      typeof MutationDetector !== 'undefined') {
+    initializeDynamicDetection({
+      enableMutations: true,
+      enableScroll: true,
+      enableSPA: true,
+      autoStart: true
+    });
+  }
+}, 2000); // Wait 2 seconds after page load

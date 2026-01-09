@@ -1,0 +1,393 @@
+{
+  "$schema": "https://basset-hound.io/schemas/workflow/v1.0.0",
+  "id": "2b4c6d8e-3f5a-4b7c-8d9e-1a2b3c4d5e6f",
+  "name": "Email Investigation",
+  "description": "Comprehensive email investigation: Check HaveIBeenPwned for breaches, search Google for mentions, extract context from results.",
+  "version": "1.0.0",
+  "author": "Basset Hound Team",
+  "tags": ["email", "osint", "breach-check", "google-search", "investigation"],
+  "category": "email",
+  "inputs": [
+    {
+      "name": "email",
+      "type": "string",
+      "label": "Email Address",
+      "description": "Email address to investigate",
+      "required": true,
+      "validation": {
+        "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+      }
+    },
+    {
+      "name": "maxSearchResults",
+      "type": "number",
+      "label": "Max Search Results",
+      "description": "Maximum number of Google search results to analyze",
+      "required": false,
+      "default": 10,
+      "validation": {
+        "min": 1,
+        "max": 20
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "name": "breaches",
+      "type": "array",
+      "description": "Breaches found on HaveIBeenPwned"
+    },
+    {
+      "name": "searchResults",
+      "type": "array",
+      "description": "Google search results with email mentions"
+    },
+    {
+      "name": "evidenceItems",
+      "type": "array",
+      "description": "Evidence captured during investigation"
+    }
+  ],
+  "variables": {
+    "breaches": [],
+    "searchResults": [],
+    "evidenceItems": [],
+    "executionStartTime": 0
+  },
+  "config": {
+    "timeout": 900000,
+    "retryPolicy": {
+      "enabled": true,
+      "maxRetries": 3,
+      "retryDelay": 3000,
+      "retryBackoff": "exponential"
+    },
+    "evidence": {
+      "captureScreenshots": true,
+      "captureDOM": false,
+      "captureNetwork": false
+    },
+    "execution": {
+      "mode": "sequential",
+      "maxParallel": 1,
+      "continueOnError": true
+    }
+  },
+  "steps": [
+    {
+      "id": "init-timestamp",
+      "name": "Initialize Timestamp",
+      "type": "script",
+      "description": "Record execution start time",
+      "params": {
+        "code": "executionStartTime = Date.now(); return { startTime: executionStartTime };"
+      }
+    },
+    {
+      "id": "nav-hibp",
+      "name": "Navigate to HaveIBeenPwned",
+      "type": "navigate",
+      "description": "Navigate to HIBP breach checker",
+      "params": {
+        "url": "https://haveibeenpwned.com/",
+        "waitFor": "input[type='email']",
+        "waitUntil": "networkidle2",
+        "timeout": 15000
+      },
+      "timeout": 20000,
+      "retries": 2
+    },
+    {
+      "id": "fill-hibp-email",
+      "name": "Fill HIBP Email Form",
+      "type": "fill",
+      "description": "Enter email address in search form",
+      "params": {
+        "fields": {
+          "input[type='email']": "${email}"
+        },
+        "submit": false,
+        "humanize": true
+      }
+    },
+    {
+      "id": "submit-hibp",
+      "name": "Submit HIBP Form",
+      "type": "click",
+      "description": "Click search button",
+      "params": {
+        "selector": "button[type='submit'], .pwnedSearchButton",
+        "waitAfter": 2000,
+        "scrollIntoView": true
+      }
+    },
+    {
+      "id": "wait-hibp-results",
+      "name": "Wait for HIBP Results",
+      "type": "wait",
+      "description": "Wait for results to load",
+      "params": {
+        "for": "element",
+        "selector": ".pwnedSearchResult, .noPwnage, .pwnedWebsite",
+        "timeout": 10000
+      },
+      "continueOnError": true
+    },
+    {
+      "id": "extract-hibp-results",
+      "name": "Extract HIBP Breach Data",
+      "type": "extract",
+      "description": "Extract breach information if found",
+      "params": {
+        "mode": "all",
+        "selector": "body"
+      },
+      "outputs": {
+        "hibpContent": "content"
+      },
+      "continueOnError": true
+    },
+    {
+      "id": "screenshot-hibp",
+      "name": "Screenshot HIBP Results",
+      "type": "screenshot",
+      "description": "Capture HIBP results as evidence",
+      "params": {
+        "fullPage": true,
+        "format": "png"
+      },
+      "outputs": {
+        "hibpScreenshot": "dataUrl"
+      }
+    },
+    {
+      "id": "parse-hibp-results",
+      "name": "Parse HIBP Results",
+      "type": "script",
+      "description": "Parse breach data from page content",
+      "params": {
+        "code": "const noPwnage = hibpContent.includes('Good news') || hibpContent.includes('no pwnage found'); if (noPwnage) { breaches = []; } else { const breachElements = document.querySelectorAll('.pwnedWebsite'); breaches = Array.from(breachElements).map(el => ({ name: el.querySelector('.pwnedWebsiteName')?.textContent || 'Unknown', description: el.querySelector('.pwnedWebsiteDescription')?.textContent || '', breachDate: el.querySelector('.pwnedDate')?.textContent || '', compromisedData: el.querySelector('.compromisedData')?.textContent || '' })); } evidenceItems.push({ type: 'hibp-results', breaches: breaches, screenshot: hibpScreenshot, timestamp: Date.now() }); return { breachCount: breaches.length, noPwnage: noPwnage };"
+      },
+      "outputs": {
+        "breachCount": "breachCount",
+        "noPwnage": "noPwnage"
+      },
+      "continueOnError": true
+    },
+    {
+      "id": "nav-google",
+      "name": "Navigate to Google",
+      "type": "navigate",
+      "description": "Navigate to Google search",
+      "params": {
+        "url": "https://www.google.com",
+        "waitFor": "input[name='q']",
+        "waitUntil": "networkidle2"
+      },
+      "timeout": 15000,
+      "retries": 2
+    },
+    {
+      "id": "fill-google-search",
+      "name": "Fill Google Search",
+      "type": "fill",
+      "description": "Search for email in quotes",
+      "params": {
+        "fields": {
+          "input[name='q']": "\"${email}\""
+        },
+        "submit": true,
+        "humanize": true
+      }
+    },
+    {
+      "id": "wait-google-results",
+      "name": "Wait for Google Results",
+      "type": "wait",
+      "description": "Wait for search results to load",
+      "params": {
+        "for": "element",
+        "selector": "#search, #rso",
+        "timeout": 10000
+      }
+    },
+    {
+      "id": "extract-search-results",
+      "name": "Extract Search Result Links",
+      "type": "extract",
+      "description": "Extract top N search result URLs",
+      "params": {
+        "mode": "structured",
+        "selectors": {
+          "results": "#search a"
+        }
+      },
+      "outputs": {
+        "googleResults": "result"
+      }
+    },
+    {
+      "id": "screenshot-google",
+      "name": "Screenshot Google Results",
+      "type": "screenshot",
+      "description": "Capture search results page",
+      "params": {
+        "fullPage": false,
+        "format": "png"
+      },
+      "outputs": {
+        "googleScreenshot": "dataUrl"
+      }
+    },
+    {
+      "id": "parse-search-links",
+      "name": "Parse Search Result URLs",
+      "type": "script",
+      "description": "Extract and filter result URLs",
+      "params": {
+        "code": "const resultLinks = document.querySelectorAll('#search a[href^=\"http\"]'); const uniqueUrls = new Set(); const results = []; resultLinks.forEach(link => { const url = link.href; if (url && !url.includes('google.com') && !url.includes('youtube.com') && uniqueUrls.size < maxSearchResults) { uniqueUrls.add(url); results.push({ url: url, title: link.textContent.trim() }); } }); searchResults = results; return { resultCount: results.length, urls: results.map(r => r.url) };"
+      },
+      "outputs": {
+        "resultCount": "resultCount",
+        "resultUrls": "urls"
+      }
+    },
+    {
+      "id": "loop-search-results",
+      "name": "Loop Through Search Results",
+      "type": "loop",
+      "description": "Visit each search result and look for email mentions",
+      "params": {
+        "items": "${searchResults}",
+        "variable": "result",
+        "maxIterations": "${maxSearchResults}",
+        "steps": [
+          {
+            "id": "nav-result",
+            "name": "Navigate to Result",
+            "type": "navigate",
+            "description": "Navigate to search result page",
+            "params": {
+              "url": "${result.url}",
+              "waitUntil": "networkidle2",
+              "timeout": 15000
+            },
+            "timeout": 20000,
+            "retries": 1,
+            "continueOnError": true
+          },
+          {
+            "id": "detect-email-mentions",
+            "name": "Detect Email Mentions",
+            "type": "detect",
+            "description": "Look for email mentions on page",
+            "params": {
+              "patterns": ["email"],
+              "context": true,
+              "highlight": false
+            },
+            "outputs": {
+              "emailMentions": "results"
+            },
+            "continueOnError": true
+          },
+          {
+            "id": "conditional-email-found",
+            "name": "If Email Found on Page",
+            "type": "conditional",
+            "description": "Process page if email is mentioned",
+            "params": {
+              "condition": "emailMentions && emailMentions.length > 0 && emailMentions.some(m => m.value.toLowerCase() === email.toLowerCase())",
+              "then": [
+                {
+                  "id": "extract-page-content",
+                  "name": "Extract Page Content",
+                  "type": "extract",
+                  "description": "Extract relevant content from page",
+                  "params": {
+                    "mode": "structured",
+                    "selectors": {
+                      "title": "h1, title",
+                      "content": "article, main, .content, body"
+                    }
+                  },
+                  "outputs": {
+                    "pageContent": "result"
+                  },
+                  "continueOnError": true
+                },
+                {
+                  "id": "screenshot-page",
+                  "name": "Screenshot Page",
+                  "type": "screenshot",
+                  "description": "Capture page with email mention",
+                  "params": {
+                    "fullPage": false,
+                    "format": "png"
+                  },
+                  "outputs": {
+                    "pageScreenshot": "dataUrl"
+                  },
+                  "continueOnError": true
+                },
+                {
+                  "id": "record-result",
+                  "name": "Record Result",
+                  "type": "script",
+                  "description": "Add result to evidence",
+                  "params": {
+                    "code": "evidenceItems.push({ type: 'search-result', url: result.url, title: result.title, emailMentions: emailMentions, pageContent: pageContent, screenshot: pageScreenshot, timestamp: Date.now() }); return { recorded: true };"
+                  },
+                  "continueOnError": true
+                }
+              ]
+            }
+          },
+          {
+            "id": "rate-limit-delay",
+            "name": "Rate Limit Delay",
+            "type": "wait",
+            "description": "Wait 2 seconds between requests",
+            "params": {
+              "for": "time",
+              "time": 2000
+            }
+          }
+        ]
+      },
+      "continueOnError": true
+    },
+    {
+      "id": "generate-report",
+      "name": "Generate Investigation Report",
+      "type": "script",
+      "description": "Create comprehensive investigation report",
+      "params": {
+        "code": "const report = { email: email, investigationDate: new Date().toISOString(), breaches: { found: breaches.length > 0, count: breaches.length, details: breaches }, searchResults: { totalResults: searchResults.length, pagesWithMentions: evidenceItems.filter(e => e.type === 'search-result').length, urls: searchResults.map(r => r.url) }, evidenceCollected: { totalItems: evidenceItems.length, screenshots: evidenceItems.filter(e => e.screenshot).length, breachData: breaches.length, searchPages: evidenceItems.filter(e => e.type === 'search-result').length }, executionTime: Date.now() - executionStartTime, summary: `Email ${email} was checked against HaveIBeenPwned (${breaches.length} breaches found) and ${searchResults.length} Google search results analyzed (${evidenceItems.filter(e => e.type === 'search-result').length} pages with mentions).` }; console.log('Investigation Report:', JSON.stringify(report, null, 2)); return report;"
+      },
+      "outputs": {
+        "report": "result"
+      }
+    },
+    {
+      "id": "ingest-investigation",
+      "name": "Ingest Investigation Results",
+      "type": "ingest",
+      "description": "Send investigation data to basset-hound",
+      "params": {
+        "entityType": "investigation",
+        "data": {
+          "type": "email-investigation",
+          "email": "${email}",
+          "report": "${report}",
+          "breaches": "${breaches}",
+          "evidence": "${evidenceItems}",
+          "timestamp": "${Date.now()}"
+        }
+      },
+      "outputs": {
+        "investigationId": "id"
+      }
+    }
+  ]
+}

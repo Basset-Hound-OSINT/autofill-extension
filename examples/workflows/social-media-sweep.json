@@ -1,0 +1,342 @@
+{
+  "$schema": "https://basset-hound.io/schemas/workflow/v1.0.0",
+  "id": "8a7f3d2e-1c4b-4e8f-9d3a-7b2c8e1f5a6d",
+  "name": "Social Media Sweep",
+  "description": "Check if a username exists across 10+ social media platforms and extract profile data from found accounts.",
+  "version": "1.0.0",
+  "author": "Basset Hound Team",
+  "tags": ["social-media", "username", "enumeration", "profile-extraction"],
+  "category": "username",
+  "inputs": [
+    {
+      "name": "username",
+      "type": "string",
+      "label": "Username",
+      "description": "Username to search across platforms",
+      "required": true,
+      "validation": {
+        "pattern": "^[a-zA-Z0-9_-]{3,30}$",
+        "min": 3,
+        "max": 30
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "name": "profilesFound",
+      "type": "array",
+      "description": "Array of found profiles with extracted data"
+    },
+    {
+      "name": "totalFound",
+      "type": "number",
+      "description": "Total number of profiles found"
+    },
+    {
+      "name": "evidenceItems",
+      "type": "array",
+      "description": "Evidence captured during execution"
+    }
+  ],
+  "variables": {
+    "platforms": [
+      {
+        "name": "Twitter",
+        "url": "https://twitter.com/${username}",
+        "profileSelector": "div[data-testid='UserName']",
+        "notFoundIndicator": "This account doesn't exist"
+      },
+      {
+        "name": "GitHub",
+        "url": "https://github.com/${username}",
+        "profileSelector": "h1.vcard-names",
+        "notFoundIndicator": "404"
+      },
+      {
+        "name": "Reddit",
+        "url": "https://reddit.com/user/${username}",
+        "profileSelector": "h1",
+        "notFoundIndicator": "Sorry, nobody on Reddit goes by that name"
+      },
+      {
+        "name": "LinkedIn",
+        "url": "https://linkedin.com/in/${username}",
+        "profileSelector": "h1.text-heading-xlarge",
+        "notFoundIndicator": "We couldn't find a LinkedIn profile"
+      },
+      {
+        "name": "Instagram",
+        "url": "https://instagram.com/${username}",
+        "profileSelector": "h2",
+        "notFoundIndicator": "Sorry, this page isn't available"
+      },
+      {
+        "name": "Facebook",
+        "url": "https://facebook.com/${username}",
+        "profileSelector": "h1",
+        "notFoundIndicator": "This content isn't available"
+      },
+      {
+        "name": "TikTok",
+        "url": "https://tiktok.com/@${username}",
+        "profileSelector": "h1[data-e2e='user-title']",
+        "notFoundIndicator": "Couldn't find this account"
+      },
+      {
+        "name": "Pinterest",
+        "url": "https://pinterest.com/${username}",
+        "profileSelector": "h1",
+        "notFoundIndicator": "Sorry! We couldn't find that user"
+      },
+      {
+        "name": "Tumblr",
+        "url": "https://${username}.tumblr.com",
+        "profileSelector": "h1",
+        "notFoundIndicator": "There's nothing here"
+      },
+      {
+        "name": "Medium",
+        "url": "https://medium.com/@${username}",
+        "profileSelector": "h2",
+        "notFoundIndicator": "Profile not found"
+      }
+    ],
+    "profilesFound": [],
+    "totalFound": 0
+  },
+  "config": {
+    "timeout": 600000,
+    "retryPolicy": {
+      "enabled": true,
+      "maxRetries": 3,
+      "retryDelay": 2000,
+      "retryBackoff": "exponential"
+    },
+    "evidence": {
+      "captureScreenshots": true,
+      "captureDOM": false,
+      "captureNetwork": false
+    },
+    "execution": {
+      "mode": "sequential",
+      "maxParallel": 1,
+      "continueOnError": true
+    }
+  },
+  "steps": [
+    {
+      "id": "init",
+      "name": "Initialize Evidence Session",
+      "type": "script",
+      "description": "Create evidence session for this workflow execution",
+      "params": {
+        "code": "return { sessionId: 'temp', platforms: platforms };"
+      },
+      "outputs": {
+        "platforms": "platforms"
+      }
+    },
+    {
+      "id": "loop-platforms",
+      "name": "Loop Through Platforms",
+      "type": "loop",
+      "description": "Check each platform for the username",
+      "params": {
+        "items": "${platforms}",
+        "variable": "platform",
+        "maxIterations": 20,
+        "steps": [
+          {
+            "id": "nav-platform",
+            "name": "Navigate to Platform",
+            "type": "navigate",
+            "description": "Navigate to the profile URL for this platform",
+            "params": {
+              "url": "${platform.url}",
+              "waitUntil": "networkidle2",
+              "timeout": 15000
+            },
+            "timeout": 20000,
+            "retries": 2,
+            "continueOnError": true,
+            "outputs": {
+              "finalUrl": "currentUrl"
+            }
+          },
+          {
+            "id": "wait-page-load",
+            "name": "Wait for Page Load",
+            "type": "wait",
+            "description": "Wait for either profile content or 404 message",
+            "params": {
+              "for": "time",
+              "time": 3000
+            },
+            "continueOnError": true
+          },
+          {
+            "id": "check-profile-exists",
+            "name": "Check if Profile Exists",
+            "type": "script",
+            "description": "Check if profile exists by looking for 404 indicators",
+            "params": {
+              "code": "const bodyText = document.body.innerText; return !bodyText.includes(platform.notFoundIndicator) && !document.title.includes('404');"
+            },
+            "outputs": {
+              "profileExists": "result"
+            },
+            "continueOnError": true
+          },
+          {
+            "id": "conditional-profile-found",
+            "name": "If Profile Found",
+            "type": "conditional",
+            "description": "Execute steps only if profile exists",
+            "params": {
+              "condition": "profileExists === true",
+              "then": [
+                {
+                  "id": "extract-profile",
+                  "name": "Extract Profile Data",
+                  "type": "extract",
+                  "description": "Extract structured profile data",
+                  "params": {
+                    "mode": "structured",
+                    "selectors": {
+                      "displayName": "${platform.profileSelector}",
+                      "bio": "div[data-testid='UserDescription'], .bio, .about",
+                      "followers": "*[data-testid='followersCount'], .followers, .follower-count",
+                      "following": "*[data-testid='followingCount'], .following, .following-count",
+                      "posts": "*[data-testid='postsCount'], .posts, .post-count"
+                    }
+                  },
+                  "outputs": {
+                    "profileData": "result"
+                  },
+                  "continueOnError": true
+                },
+                {
+                  "id": "detect-osint",
+                  "name": "Detect OSINT Patterns",
+                  "type": "detect",
+                  "description": "Detect email, phone, crypto addresses in profile",
+                  "params": {
+                    "patterns": ["email", "phone", "crypto_btc", "crypto_eth"],
+                    "context": true,
+                    "highlight": false
+                  },
+                  "outputs": {
+                    "detectedData": "results"
+                  },
+                  "continueOnError": true
+                },
+                {
+                  "id": "screenshot-profile",
+                  "name": "Capture Profile Screenshot",
+                  "type": "screenshot",
+                  "description": "Take screenshot of profile as evidence",
+                  "params": {
+                    "fullPage": false,
+                    "format": "png"
+                  },
+                  "outputs": {
+                    "screenshot": "dataUrl"
+                  },
+                  "continueOnError": true
+                },
+                {
+                  "id": "record-found-profile",
+                  "name": "Record Found Profile",
+                  "type": "script",
+                  "description": "Add profile to results array",
+                  "params": {
+                    "code": "profilesFound.push({ platform: platform.name, username: username, url: currentUrl, data: profileData, osint: detectedData, screenshot: screenshot, timestamp: Date.now() }); totalFound++; return { success: true };"
+                  },
+                  "continueOnError": true
+                },
+                {
+                  "id": "ingest-profile",
+                  "name": "Ingest Profile Data",
+                  "type": "ingest",
+                  "description": "Send profile data to basset-hound",
+                  "params": {
+                    "entityType": "person",
+                    "data": {
+                      "username": "${username}",
+                      "platform": "${platform.name}",
+                      "profileUrl": "${currentUrl}",
+                      "displayName": "${profileData.displayName}",
+                      "bio": "${profileData.bio}",
+                      "followers": "${profileData.followers}",
+                      "osintData": "${detectedData}",
+                      "evidence": {
+                        "screenshot": "${screenshot}",
+                        "timestamp": "${Date.now()}"
+                      }
+                    }
+                  },
+                  "outputs": {
+                    "entityId": "id"
+                  },
+                  "continueOnError": true
+                }
+              ],
+              "else": [
+                {
+                  "id": "log-not-found",
+                  "name": "Log Profile Not Found",
+                  "type": "script",
+                  "description": "Log that profile was not found",
+                  "params": {
+                    "code": "console.log('[Workflow] Profile not found on ' + platform.name + ' for username: ' + username); return { found: false };"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "rate-limit-delay",
+            "name": "Rate Limit Delay",
+            "type": "wait",
+            "description": "Wait 2 seconds to avoid rate limiting",
+            "params": {
+              "for": "time",
+              "time": 2000
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "generate-summary",
+      "name": "Generate Summary Report",
+      "type": "script",
+      "description": "Generate summary of found profiles",
+      "params": {
+        "code": "const summary = { username: username, totalPlatforms: platforms.length, profilesFound: totalFound, platforms: profilesFound.map(p => ({ platform: p.platform, url: p.url, displayName: p.data?.displayName || 'N/A' })), executionTime: Date.now() - executionStartTime }; console.log('Summary:', JSON.stringify(summary, null, 2)); return summary;"
+      },
+      "outputs": {
+        "summary": "result"
+      }
+    },
+    {
+      "id": "final-ingest",
+      "name": "Ingest Workflow Results",
+      "type": "ingest",
+      "description": "Send workflow summary to basset-hound",
+      "params": {
+        "entityType": "investigation",
+        "data": {
+          "type": "social-media-sweep",
+          "username": "${username}",
+          "summary": "${summary}",
+          "results": "${profilesFound}",
+          "timestamp": "${Date.now()}"
+        }
+      },
+      "outputs": {
+        "investigationId": "id"
+      }
+    }
+  ]
+}

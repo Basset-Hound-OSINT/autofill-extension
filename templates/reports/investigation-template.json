@@ -1,0 +1,33 @@
+{
+  "id": "investigation-report",
+  "name": "Investigation Report",
+  "description": "Comprehensive investigation report with all sections",
+  "version": "1.0.0",
+  "category": "investigation",
+  "sections": [
+    "coverPage",
+    "tableOfContents",
+    "executiveSummary",
+    "caseOverview",
+    "methodology",
+    "findings",
+    "evidenceSummary",
+    "timeline",
+    "osintData",
+    "recommendations",
+    "chainOfCustody",
+    "appendix"
+  ],
+  "styling": {
+    "primaryColor": "#2c3e50",
+    "secondaryColor": "#3498db",
+    "fontFamily": "Segoe UI, sans-serif",
+    "fontSize": 11,
+    "pageMargins": {
+      "top": 20,
+      "right": 20,
+      "bottom": 20,
+      "left": 20
+    }
+  }
+}

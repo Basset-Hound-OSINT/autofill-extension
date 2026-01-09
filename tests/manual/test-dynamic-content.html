@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phase 16.2: Dynamic Content Detection Test</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 16px;
+    }
+
+    .controls {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    button.secondary {
+      background: #6c757d;
+    }
+
+    button.secondary:hover {
+      background: #545b62;
+    }
+
+    button.danger {
+      background: #dc3545;
+    }
+
+    button.danger:hover {
+      background: #c82333;
+    }
+
+    button.success {
+      background: #28a745;
+    }
+
+    button.success:hover {
+      background: #218838;
+    }
+
+    .status {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    .status-item {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      border-left: 4px solid #007bff;
+    }
+
+    .status-label {
+      font-size: 12px;
+      color: #666;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .status-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #333;
+    }
+
+    .content-section {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e9ecef;
+    }
+
+    .feed {
+      display: grid;
+      gap: 20px;
+    }
+
+    .post {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      border-left: 4px solid #28a745;
+    }
+
+    .post-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .post-author {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .post-time {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .post-content {
+      color: #495057;
+      line-height: 1.6;
+    }
+
+    .post-metadata {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid #dee2e6;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      font-size: 13px;
+    }
+
+    .metadata-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: #666;
+    }
+
+    .metadata-label {
+      font-weight: 600;
+    }
+
+    .loader {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+      font-size: 16px;
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #007bff;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .spa-nav {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .nav-link {
+      padding: 10px 20px;
+      background: #e9ecef;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .nav-link:hover {
+      background: #dee2e6;
+    }
+
+    .nav-link.active {
+      background: #007bff;
+      color: white;
+    }
+
+    .route-content {
+      margin-top: 20px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    #shadow-dom-container {
+      background: #fff3cd;
+      border: 2px dashed #ffc107;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+
+    .detection-highlight {
+      background: rgba(255, 193, 7, 0.3);
+      border: 2px solid #ffc107;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <h1>🐕 Phase 16.2: Dynamic Content Detection Test</h1>
+      <p class="subtitle">Testing MutationObserver, Infinite Scroll, and SPA Navigation</p>
+    </header>
+
+    <!-- Controls -->
+    <div class="controls">
+      <button onclick="loadAjaxContent()">Load AJAX Content</button>
+      <button onclick="addPost()" class="success">Add New Post</button>
+      <button onclick="modifyContent()" class="secondary">Modify Content</button>
+      <button onclick="clearContent()" class="danger">Clear Content</button>
+      <button onclick="loadMorePosts()" class="success">Load More Posts</button>
+      <button onclick="createShadowDOM()" class="secondary">Create Shadow DOM</button>
+      <button onclick="updateStats()">Update Stats</button>
+    </div>
+
+    <!-- Status Display -->
+    <div class="status">
+      <h2 class="section-title">Detection Statistics</h2>
+      <div class="status-grid">
+        <div class="status-item">
+          <div class="status-label">Posts Loaded</div>
+          <div class="status-value" id="posts-count">0</div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">AJAX Calls</div>
+          <div class="status-value" id="ajax-count">0</div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">Mutations</div>
+          <div class="status-value" id="mutation-count">0</div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">Route Changes</div>
+          <div class="status-value" id="route-count">0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SPA Navigation -->
+    <div class="spa-nav">
+      <h2 class="section-title">SPA Navigation Test</h2>
+      <div class="nav-links">
+        <div class="nav-link active" onclick="navigateTo('home')">Home</div>
+        <div class="nav-link" onclick="navigateTo('profile')">Profile</div>
+        <div class="nav-link" onclick="navigateTo('messages')">Messages</div>
+        <div class="nav-link" onclick="navigateTo('settings')">Settings</div>
+        <div class="nav-link" onclick="navigateTo('about')">About</div>
+      </div>
+      <div class="route-content" id="route-content">
+        <strong>Current Route:</strong> /home
+      </div>
+    </div>
+
+    <!-- Dynamic Content Feed -->
+    <div class="content-section">
+      <h2 class="section-title">Dynamic Content Feed (Infinite Scroll)</h2>
+      <div class="feed" id="feed">
+        <!-- Posts will be loaded here -->
+      </div>
+      <div class="loader" id="loader" style="display: none;">
+        <div class="spinner"></div>
+        <div>Loading more content...</div>
+      </div>
+    </div>
+
+    <!-- AJAX Content Area -->
+    <div class="content-section">
+      <h2 class="section-title">AJAX-Loaded Content</h2>
+      <div id="ajax-content">
+        <p style="color: #666;">Click "Load AJAX Content" to fetch data...</p>
+      </div>
+    </div>
+
+    <!-- Shadow DOM Test -->
+    <div class="content-section">
+      <h2 class="section-title">Shadow DOM Test</h2>
+      <div id="shadow-dom-container">
+        <p>Shadow DOM content will appear here...</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global state
+    let postCount = 0;
+    let ajaxCount = 0;
+    let mutationCount = 0;
+    let routeCount = 0;
+    let currentRoute = 'home';
+
+    // Sample OSINT data patterns
+    const sampleEmails = [
+      'john.doe@example.com',
+      'alice.smith@company.org',
+      'bob.johnson@domain.net',
+      'charlie.brown@email.co',
+      'diana.prince@justice.gov'
+    ];
+
+    const samplePhones = [
+      '555-123-4567',
+      '555-987-6543',
+      '555-456-7890',
+      '555-321-0987',
+      '555-789-0123'
+    ];
+
+    const sampleIPs = [
+      '192.168.1.100',
+      '10.0.0.50',
+      '172.16.0.25',
+      '8.8.8.8',
+      '1.1.1.1'
+    ];
+
+    const sampleCrypto = [
+      'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+      '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
+      'LM2WMpR1Nf3bvfxhpKBLnFgKqZCR1YpNkE'
+    ];
+
+    const sampleDomains = [
+      'example.com',
+      'test-site.org',
+      'company-domain.net',
+      'user-website.io',
+      'sample-page.co'
+    ];
+
+    // Generate random post
+    function generatePost() {
+      const email = sampleEmails[Math.floor(Math.random() * sampleEmails.length)];
+      const phone = samplePhones[Math.floor(Math.random() * samplePhones.length)];
+      const ip = sampleIPs[Math.floor(Math.random() * sampleIPs.length)];
+      const crypto = sampleCrypto[Math.floor(Math.random() * sampleCrypto.length)];
+      const domain = sampleDomains[Math.floor(Math.random() * sampleDomains.length)];
+
+      const contents = [
+        `Looking to hire a developer. Contact me at ${email} or call ${phone}.`,
+        `Server issues at ${ip}. Please check DNS settings for ${domain}.`,
+        `Payment sent to crypto address: ${crypto}. Transaction ID pending.`,
+        `My portfolio is at https://${domain}. Reach me at ${email}.`,
+        `API endpoint: ${ip}:8080. Email logs to ${email} for debugging.`,
+        `Phone support: ${phone}. Website: ${domain}. Questions? ${email}`
+      ];
+
+      postCount++;
+      return {
+        id: postCount,
+        author: `User${postCount}`,
+        content: contents[Math.floor(Math.random() * contents.length)],
+        time: new Date().toLocaleTimeString(),
+        email: email,
+        phone: phone,
+        ip: ip,
+        domain: domain
+      };
+    }
+
+    // Add post to feed
+    function addPost() {
+      const post = generatePost();
+      const feed = document.getElementById('feed');
+
+      const postElement = document.createElement('div');
+      postElement.className = 'post';
+      postElement.innerHTML = `
+        <div class="post-header">
+          <span class="post-author">${post.author}</span>
+          <span class="post-time">${post.time}</span>
+        </div>
+        <div class="post-content">${post.content}</div>
+        <div class="post-metadata">
+          <div class="metadata-item">
+            <span class="metadata-label">Email:</span>
+            <span>${post.email}</span>
+          </div>
+          <div class="metadata-item">
+            <span class="metadata-label">Phone:</span>
+            <span>${post.phone}</span>
+          </div>
+          <div class="metadata-item">
+            <span class="metadata-label">IP:</span>
+            <span>${post.ip}</span>
+          </div>
+          <div class="metadata-item">
+            <span class="metadata-label">Domain:</span>
+            <span>${post.domain}</span>
+          </div>
+        </div>
+      `;
+
+      feed.insertBefore(postElement, feed.firstChild);
+      updateStats();
+    }
+
+    // Load AJAX content
+    function loadAjaxContent() {
+      ajaxCount++;
+      const container = document.getElementById('ajax-content');
+      container.innerHTML = '<div class="loader"><div class="spinner"></div><div>Loading...</div></div>';
+
+      // Simulate AJAX delay
+      setTimeout(() => {
+        const post = generatePost();
+        container.innerHTML = `
+          <div class="post">
+            <div class="post-header">
+              <span class="post-author">AJAX Loaded - ${post.author}</span>
+              <span class="post-time">${post.time}</span>
+            </div>
+            <div class="post-content">${post.content}</div>
+            <div class="post-metadata">
+              <div class="metadata-item">
+                <span class="metadata-label">Email:</span>
+                <span>${post.email}</span>
+              </div>
+              <div class="metadata-item">
+                <span class="metadata-label">Phone:</span>
+                <span>${post.phone}</span>
+              </div>
+              <div class="metadata-item">
+                <span class="metadata-label">Source:</span>
+                <span>AJAX Request #${ajaxCount}</span>
+              </div>
+            </div>
+          </div>
+        `;
+        updateStats();
+      }, 1000);
+    }
+
+    // Load more posts (infinite scroll simulation)
+    function loadMorePosts() {
+      const loader = document.getElementById('loader');
+      loader.style.display = 'block';
+
+      setTimeout(() => {
+        for (let i = 0; i < 5; i++) {
+          addPost();
+        }
+        loader.style.display = 'none';
+      }, 1500);
+    }
+
+    // Modify existing content
+    function modifyContent() {
+      const posts = document.querySelectorAll('.post');
+      if (posts.length > 0) {
+        const randomPost = posts[Math.floor(Math.random() * posts.length)];
+        const content = randomPost.querySelector('.post-content');
+        const newEmail = sampleEmails[Math.floor(Math.random() * sampleEmails.length)];
+        content.textContent = `Content modified! New email: ${newEmail}`;
+        mutationCount++;
+        updateStats();
+      }
+    }
+
+    // Clear content
+    function clearContent() {
+      document.getElementById('feed').innerHTML = '';
+      postCount = 0;
+      updateStats();
+    }
+
+    // Create shadow DOM
+    function createShadowDOM() {
+      const container = document.getElementById('shadow-dom-container');
+      container.innerHTML = '';
+
+      const host = document.createElement('div');
+      host.id = 'shadow-host';
+      container.appendChild(host);
+
+      const shadowRoot = host.attachShadow({ mode: 'open' });
+
+      const post = generatePost();
+      shadowRoot.innerHTML = `
+        <style>
+          .shadow-post {
+            background: #f0f8ff;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #007bff;
+          }
+          .shadow-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #007bff;
+          }
+          .shadow-content {
+            color: #333;
+            line-height: 1.6;
+          }
+        </style>
+        <div class="shadow-post">
+          <div class="shadow-title">Shadow DOM Content</div>
+          <div class="shadow-content">${post.content}</div>
+          <div class="shadow-content" style="margin-top: 10px;">
+            Email: ${post.email} | Phone: ${post.phone}
+          </div>
+        </div>
+      `;
+    }
+
+    // SPA navigation
+    function navigateTo(route) {
+      currentRoute = route;
+      routeCount++;
+
+      // Update URL (simulating SPA routing)
+      history.pushState({ route }, '', `/${route}`);
+
+      // Update UI
+      document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+      });
+      event.target.classList.add('active');
+
+      // Generate route-specific content with OSINT data
+      const routeContent = document.getElementById('route-content');
+      const post = generatePost();
+
+      const contentMap = {
+        home: `<strong>Current Route:</strong> /home<br><br>Welcome home! Contact: ${post.email}`,
+        profile: `<strong>Current Route:</strong> /profile<br><br>Profile Page<br>Email: ${post.email}<br>Phone: ${post.phone}`,
+        messages: `<strong>Current Route:</strong> /messages<br><br>Messages from ${post.email}. Reply to ${post.phone}.`,
+        settings: `<strong>Current Route:</strong> /settings<br><br>API Endpoint: ${post.ip}<br>Domain: ${post.domain}`,
+        about: `<strong>Current Route:</strong> /about<br><br>About us at ${post.domain}. Contact: ${post.email}`
+      };
+
+      routeContent.innerHTML = contentMap[route] || `<strong>Current Route:</strong> /${route}`;
+      updateStats();
+    }
+
+    // Handle browser back/forward
+    window.addEventListener('popstate', (event) => {
+      if (event.state && event.state.route) {
+        currentRoute = event.state.route;
+        updateStats();
+      }
+    });
+
+    // Update statistics display
+    function updateStats() {
+      document.getElementById('posts-count').textContent = postCount;
+      document.getElementById('ajax-count').textContent = ajaxCount;
+      document.getElementById('mutation-count').textContent = mutationCount;
+      document.getElementById('route-count').textContent = routeCount;
+    }
+
+    // Infinite scroll implementation
+    let isLoading = false;
+
+    function handleScroll() {
+      if (isLoading) return;
+
+      const scrollPosition = window.innerHeight + window.scrollY;
+      const threshold = document.documentElement.scrollHeight - 500;
+
+      if (scrollPosition > threshold) {
+        isLoading = true;
+        loadMorePosts();
+        setTimeout(() => {
+          isLoading = false;
+        }, 2000);
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll);
+
+    // Initial content
+    setTimeout(() => {
+      for (let i = 0; i < 3; i++) {
+        addPost();
+      }
+    }, 500);
+
+    // Auto-add posts periodically (simulating live feed)
+    setInterval(() => {
+      if (postCount < 50) { // Limit to 50 posts
+        addPost();
+      }
+    }, 10000); // Every 10 seconds
+
+    console.log('🐕 Phase 16.2 Test Page Ready!');
+    console.log('Dynamic content detection should automatically start after 2 seconds.');
+    console.log('Try scrolling, clicking buttons, and navigating to test detection.');
+  </script>
+</body>
+</html>

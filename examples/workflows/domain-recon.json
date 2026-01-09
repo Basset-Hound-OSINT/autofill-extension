@@ -1,0 +1,415 @@
+{
+  "$schema": "https://basset-hound.io/schemas/workflow/v1.0.0",
+  "id": "3c5d7e9f-4a6b-5c8d-9e1f-2b3c4d5e6f7a",
+  "name": "Domain Reconnaissance",
+  "description": "Comprehensive domain investigation: WHOIS lookup, Wayback Machine snapshots, DNS records, and subdomain enumeration.",
+  "version": "1.0.0",
+  "author": "Basset Hound Team",
+  "tags": ["domain", "whois", "dns", "wayback", "subdomains", "reconnaissance"],
+  "category": "domain",
+  "inputs": [
+    {
+      "name": "domain",
+      "type": "string",
+      "label": "Domain Name",
+      "description": "Domain name to investigate (without http://)",
+      "required": true,
+      "validation": {
+        "pattern": "^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?\\.[a-zA-Z]{2,}$"
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "name": "whoisData",
+      "type": "object",
+      "description": "WHOIS registration data"
+    },
+    {
+      "name": "waybackSnapshots",
+      "type": "array",
+      "description": "Wayback Machine snapshot dates"
+    },
+    {
+      "name": "dnsRecords",
+      "type": "object",
+      "description": "DNS records (A, MX, TXT, etc.)"
+    },
+    {
+      "name": "subdomains",
+      "type": "array",
+      "description": "Discovered subdomains"
+    },
+    {
+      "name": "evidenceItems",
+      "type": "array",
+      "description": "Evidence captured during reconnaissance"
+    }
+  ],
+  "variables": {
+    "whoisData": null,
+    "waybackSnapshots": [],
+    "dnsRecords": null,
+    "subdomains": [],
+    "evidenceItems": []
+  },
+  "config": {
+    "timeout": 600000,
+    "retryPolicy": {
+      "enabled": true,
+      "maxRetries": 2,
+      "retryDelay": 2000,
+      "retryBackoff": "exponential"
+    },
+    "evidence": {
+      "captureScreenshots": true,
+      "captureDOM": false,
+      "captureNetwork": false
+    },
+    "execution": {
+      "mode": "parallel",
+      "maxParallel": 4,
+      "continueOnError": true
+    }
+  },
+  "steps": [
+    {
+      "id": "parallel-recon",
+      "name": "Run Parallel Reconnaissance",
+      "type": "parallel",
+      "description": "Execute WHOIS, Wayback, DNS, and subdomain checks simultaneously",
+      "params": {
+        "maxConcurrent": 4,
+        "steps": [
+          {
+            "id": "whois-lookup",
+            "name": "WHOIS Lookup",
+            "type": "script",
+            "description": "Placeholder for WHOIS data collection",
+            "params": {
+              "code": "return { note: 'WHOIS lookup: Navigate to who.is or similar service', steps: ['Navigate to https://who.is/whois/' + domain, 'Extract registration data', 'Capture screenshot'] };"
+            },
+            "onSuccess": [
+              {
+                "id": "nav-whois",
+                "name": "Navigate to WHOIS Lookup",
+                "type": "navigate",
+                "description": "Navigate to who.is",
+                "params": {
+                  "url": "https://who.is/whois/${domain}",
+                  "waitFor": ".queryResponseBodyValue",
+                  "waitUntil": "networkidle2",
+                  "timeout": 15000
+                },
+                "timeout": 20000,
+                "retries": 2,
+                "continueOnError": true
+              },
+              {
+                "id": "extract-whois",
+                "name": "Extract WHOIS Data",
+                "type": "extract",
+                "description": "Extract registration information",
+                "params": {
+                  "mode": "structured",
+                  "selectors": {
+                    "registrar": ".queryResponseBodyKey:contains('Registrar') + .queryResponseBodyValue",
+                    "registrationDate": ".queryResponseBodyKey:contains('Registration Date') + .queryResponseBodyValue, .queryResponseBodyKey:contains('Created Date') + .queryResponseBodyValue",
+                    "expiryDate": ".queryResponseBodyKey:contains('Registry Expiry Date') + .queryResponseBodyValue, .queryResponseBodyKey:contains('Expiration Date') + .queryResponseBodyValue",
+                    "nameServers": ".queryResponseBodyKey:contains('Name Server') + .queryResponseBodyValue",
+                    "status": ".queryResponseBodyKey:contains('Status') + .queryResponseBodyValue"
+                  }
+                },
+                "outputs": {
+                  "whoisData": "result"
+                },
+                "continueOnError": true
+              },
+              {
+                "id": "screenshot-whois",
+                "name": "Screenshot WHOIS",
+                "type": "screenshot",
+                "description": "Capture WHOIS data",
+                "params": {
+                  "fullPage": true,
+                  "format": "png"
+                },
+                "outputs": {
+                  "whoisScreenshot": "dataUrl"
+                },
+                "continueOnError": true
+              },
+              {
+                "id": "record-whois",
+                "name": "Record WHOIS Evidence",
+                "type": "script",
+                "description": "Add WHOIS data to evidence",
+                "params": {
+                  "code": "evidenceItems.push({ type: 'whois', domain: domain, data: whoisData, screenshot: whoisScreenshot, timestamp: Date.now() }); return { recorded: true };"
+                },
+                "continueOnError": true
+              }
+            ]
+          },
+          {
+            "id": "wayback-check",
+            "name": "Wayback Machine Check",
+            "type": "script",
+            "description": "Placeholder for Wayback Machine lookup",
+            "params": {
+              "code": "return { note: 'Wayback Machine check', steps: ['Navigate to web.archive.org', 'Search for domain', 'Extract snapshot dates'] };"
+            },
+            "onSuccess": [
+              {
+                "id": "nav-wayback",
+                "name": "Navigate to Wayback Machine",
+                "type": "navigate",
+                "description": "Navigate to web.archive.org",
+                "params": {
+                  "url": "https://web.archive.org/web/*/${domain}",
+                  "waitUntil": "networkidle2",
+                  "timeout": 20000
+                },
+                "timeout": 25000,
+                "retries": 2,
+                "continueOnError": true
+              },
+              {
+                "id": "wait-wayback-load",
+                "name": "Wait for Wayback Load",
+                "type": "wait",
+                "description": "Wait for calendar to load",
+                "params": {
+                  "for": "time",
+                  "time": 5000
+                },
+                "continueOnError": true
+              },
+              {
+                "id": "extract-wayback-snapshots",
+                "name": "Extract Wayback Snapshots",
+                "type": "script",
+                "description": "Extract snapshot dates from calendar",
+                "params": {
+                  "code": "const snapshotLinks = document.querySelectorAll('.captures a'); waybackSnapshots = Array.from(snapshotLinks).slice(0, 50).map(link => ({ date: link.getAttribute('title') || link.textContent.trim(), url: link.href })); return { snapshotCount: waybackSnapshots.length };"
+                },
+                "outputs": {
+                  "snapshotCount": "snapshotCount"
+                },
+                "continueOnError": true
+              },
+              {
+                "id": "screenshot-wayback",
+                "name": "Screenshot Wayback",
+                "type": "screenshot",
+                "description": "Capture Wayback calendar",
+                "params": {
+                  "fullPage": false,
+                  "format": "png"
+                },
+                "outputs": {
+                  "waybackScreenshot": "dataUrl"
+                },
+                "continueOnError": true
+              },
+              {
+                "id": "record-wayback",
+                "name": "Record Wayback Evidence",
+                "type": "script",
+                "description": "Add Wayback data to evidence",
+                "params": {
+                  "code": "evidenceItems.push({ type: 'wayback', domain: domain, snapshots: waybackSnapshots, screenshot: waybackScreenshot, timestamp: Date.now() }); return { recorded: true };"
+                },
+                "continueOnError": true
+              }
+            ]
+          },
+          {
+            "id": "dns-lookup",
+            "name": "DNS Records Lookup",
+            "type": "script",
+            "description": "Placeholder for DNS lookup",
+            "params": {
+              "code": "return { note: 'DNS records lookup', steps: ['Navigate to mxtoolbox.com', 'Check A, MX, TXT records', 'Extract DNS data'] };"
+            },
+            "onSuccess": [
+              {
+                "id": "nav-dns",
+                "name": "Navigate to MX Toolbox",
+                "type": "navigate",
+                "description": "Navigate to mxtoolbox.com",
+                "params": {
+                  "url": "https://mxtoolbox.com/SuperTool.aspx?action=a:${domain}&run=toolpage",
+                  "waitUntil": "networkidle2",
+                  "timeout": 15000
+                },
+                "timeout": 20000,
+                "retries": 2,
+                "continueOnError": true
+              },
+              {
+                "id": "wait-dns-load",
+                "name": "Wait for DNS Results",
+                "type": "wait",
+                "description": "Wait for DNS lookup to complete",
+                "params": {
+                  "for": "time",
+                  "time": 5000
+                },
+                "continueOnError": true
+              },
+              {
+                "id": "extract-dns",
+                "name": "Extract DNS Records",
+                "type": "extract",
+                "description": "Extract DNS information",
+                "params": {
+                  "mode": "all",
+                  "selector": "#ctl00_ContentPlaceHolder1_resultPanel"
+                },
+                "outputs": {
+                  "dnsContent": "content"
+                },
+                "continueOnError": true
+              },
+              {
+                "id": "screenshot-dns",
+                "name": "Screenshot DNS",
+                "type": "screenshot",
+                "description": "Capture DNS results",
+                "params": {
+                  "fullPage": false,
+                  "format": "png"
+                },
+                "outputs": {
+                  "dnsScreenshot": "dataUrl"
+                },
+                "continueOnError": true
+              },
+              {
+                "id": "parse-dns",
+                "name": "Parse DNS Records",
+                "type": "script",
+                "description": "Parse DNS records from content",
+                "params": {
+                  "code": "dnsRecords = { raw: dnsContent, parsed: 'DNS parsing would extract A, MX, TXT, NS records' }; evidenceItems.push({ type: 'dns', domain: domain, records: dnsRecords, screenshot: dnsScreenshot, timestamp: Date.now() }); return { recordCount: dnsContent.split('\\n').length };"
+                },
+                "outputs": {
+                  "recordCount": "recordCount"
+                },
+                "continueOnError": true
+              }
+            ]
+          },
+          {
+            "id": "subdomain-enum",
+            "name": "Subdomain Enumeration",
+            "type": "script",
+            "description": "Placeholder for subdomain enumeration",
+            "params": {
+              "code": "return { note: 'Subdomain enumeration', steps: ['Navigate to crt.sh', 'Search SSL certificates', 'Extract subdomains'] };"
+            },
+            "onSuccess": [
+              {
+                "id": "nav-crtsh",
+                "name": "Navigate to crt.sh",
+                "type": "navigate",
+                "description": "Navigate to crt.sh certificate search",
+                "params": {
+                  "url": "https://crt.sh/?q=%.${domain}",
+                  "waitUntil": "networkidle2",
+                  "timeout": 20000
+                },
+                "timeout": 25000,
+                "retries": 2,
+                "continueOnError": true
+              },
+              {
+                "id": "wait-crtsh-load",
+                "name": "Wait for crt.sh Load",
+                "type": "wait",
+                "description": "Wait for certificate data",
+                "params": {
+                  "for": "time",
+                  "time": 3000
+                },
+                "continueOnError": true
+              },
+              {
+                "id": "extract-subdomains",
+                "name": "Extract Subdomains",
+                "type": "script",
+                "description": "Extract subdomains from certificate CN fields",
+                "params": {
+                  "code": "const rows = document.querySelectorAll('table tr'); const subdomainSet = new Set(); rows.forEach(row => { const cells = row.querySelectorAll('td'); if (cells.length > 4) { const cn = cells[4].textContent.trim(); if (cn.includes(domain)) { subdomainSet.add(cn); } } }); subdomains = Array.from(subdomainSet).slice(0, 100); return { subdomainCount: subdomains.length };"
+                },
+                "outputs": {
+                  "subdomainCount": "subdomainCount"
+                },
+                "continueOnError": true
+              },
+              {
+                "id": "screenshot-subdomains",
+                "name": "Screenshot Subdomains",
+                "type": "screenshot",
+                "description": "Capture subdomain list",
+                "params": {
+                  "fullPage": true,
+                  "format": "png"
+                },
+                "outputs": {
+                  "subdomainScreenshot": "dataUrl"
+                },
+                "continueOnError": true
+              },
+              {
+                "id": "record-subdomains",
+                "name": "Record Subdomain Evidence",
+                "type": "script",
+                "description": "Add subdomain data to evidence",
+                "params": {
+                  "code": "evidenceItems.push({ type: 'subdomains', domain: domain, subdomains: subdomains, screenshot: subdomainScreenshot, timestamp: Date.now() }); return { recorded: true };"
+                },
+                "continueOnError": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "generate-recon-report",
+      "name": "Generate Reconnaissance Report",
+      "type": "script",
+      "description": "Create comprehensive domain recon report",
+      "params": {
+        "code": "const report = { domain: domain, timestamp: new Date().toISOString(), whois: { found: whoisData !== null, data: whoisData }, wayback: { snapshotCount: waybackSnapshots.length, snapshots: waybackSnapshots.slice(0, 10) }, dns: { recordCount: dnsRecords ? Object.keys(dnsRecords).length : 0, records: dnsRecords }, subdomains: { count: subdomains.length, list: subdomains.slice(0, 20) }, evidence: { totalItems: evidenceItems.length, screenshots: evidenceItems.filter(e => e.screenshot).length }, summary: `Domain ${domain} reconnaissance: ${waybackSnapshots.length} Wayback snapshots, ${subdomains.length} subdomains discovered, DNS records collected, WHOIS data retrieved.` }; console.log('Reconnaissance Report:', JSON.stringify(report, null, 2)); return report;"
+      },
+      "outputs": {
+        "report": "result"
+      }
+    },
+    {
+      "id": "ingest-recon",
+      "name": "Ingest Reconnaissance Data",
+      "type": "ingest",
+      "description": "Send domain recon data to basset-hound",
+      "params": {
+        "entityType": "domain",
+        "data": {
+          "domain": "${domain}",
+          "report": "${report}",
+          "whois": "${whoisData}",
+          "wayback": "${waybackSnapshots}",
+          "dns": "${dnsRecords}",
+          "subdomains": "${subdomains}",
+          "evidence": "${evidenceItems}",
+          "timestamp": "${Date.now()}"
+        }
+      },
+      "outputs": {
+        "entityId": "id"
+      }
+    }
+  ]
+}

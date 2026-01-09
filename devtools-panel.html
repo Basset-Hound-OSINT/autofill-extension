@@ -90,6 +90,15 @@
             <span>Tasks</span>
             <span class="badge" id="taskBadge">0</span>
           </button>
+          <button class="nav-tab" data-tab="ingest">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span>Ingest</span>
+            <span class="badge" id="ingestBadge">0</span>
+          </button>
           <button class="nav-tab" data-tab="audit">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -99,6 +108,26 @@
               <polyline points="10 9 9 9 8 9"/>
             </svg>
             <span>Audit Log</span>
+          </button>
+          <button class="nav-tab" data-tab="analytics">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="20" x2="12" y2="10"/>
+              <line x1="18" y1="20" x2="18" y2="4"/>
+              <line x1="6" y1="20" x2="6" y2="16"/>
+            </svg>
+            <span>Analytics</span>
+          </button>
+          <button class="nav-tab" data-tab="workflows">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+              <polyline points="7.5 4.21 12 6.81 16.5 4.21"/>
+              <polyline points="7.5 19.79 7.5 14.6 3 12"/>
+              <polyline points="21 12 16.5 14.6 16.5 19.79"/>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+              <line x1="12" y1="22.08" x2="12" y2="12"/>
+            </svg>
+            <span>Workflows</span>
+            <span class="badge" id="workflowBadge">0</span>
           </button>
           <button class="nav-tab" data-tab="console">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -395,6 +424,725 @@
           </div>
         </section>
 
+        <!-- Ingest Tab -->
+        <section class="tab-content" id="ingest-tab">
+          <div class="content-header">
+            <h2>OSINT Data Ingest</h2>
+            <div class="header-actions">
+              <button class="btn btn-sm" id="scanPageBtn">Scan Page</button>
+              <button class="btn btn-sm" id="clearIngestBtn">Clear</button>
+              <button class="btn btn-sm btn-primary" id="ingestSelectedBtn">Ingest Selected</button>
+            </div>
+          </div>
+
+          <div class="toolbar">
+            <div class="filter-group">
+              <input type="text" class="filter-input" id="ingestFilter" placeholder="Filter detected data...">
+              <select class="filter-select" id="ingestTypeFilter">
+                <option value="">All Types</option>
+                <option value="email">Email</option>
+                <option value="phone">Phone</option>
+                <option value="bitcoin">Bitcoin</option>
+                <option value="ethereum">Ethereum</option>
+                <option value="litecoin">Litecoin</option>
+                <option value="ripple">XRP</option>
+                <option value="ipv4">IPv4</option>
+                <option value="ipv6">IPv6</option>
+                <option value="domain">Domain</option>
+                <option value="url">URL</option>
+                <option value="twitter">Twitter</option>
+                <option value="instagram">Instagram</option>
+                <option value="github">GitHub</option>
+              </select>
+              <select class="filter-select" id="ingestCategoryFilter">
+                <option value="">All Categories</option>
+                <option value="contact">Contact</option>
+                <option value="crypto">Cryptocurrency</option>
+                <option value="network">Network</option>
+                <option value="social">Social Media</option>
+              </select>
+              <select class="filter-select" id="ingestValidationFilter">
+                <option value="">All Validation</option>
+                <option value="verified">Verified</option>
+                <option value="unverified">Unverified</option>
+              </select>
+            </div>
+            <div class="ingest-actions">
+              <label class="checkbox-label">
+                <input type="checkbox" id="selectAllIngest">
+                <span>Select All</span>
+              </label>
+              <button class="btn btn-sm" id="exportIngestBtn">Export JSON</button>
+            </div>
+          </div>
+
+          <div class="ingest-stats">
+            <div class="stat-item">
+              <span class="stat-label">Total Detected:</span>
+              <span class="stat-value" id="ingestTotalCount">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Selected:</span>
+              <span class="stat-value" id="ingestSelectedCount">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Verified:</span>
+              <span class="stat-value" id="ingestVerifiedCount">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Last Scan:</span>
+              <span class="stat-value" id="ingestLastScan">Never</span>
+            </div>
+          </div>
+
+          <div class="ingest-container">
+            <div class="ingest-list" id="ingestList">
+              <div class="empty-state">
+                Click "Scan Page" to detect OSINT data on the current page
+              </div>
+            </div>
+
+            <div class="ingest-detail" id="ingestDetail">
+              <div class="empty-state">Select an item to view details</div>
+            </div>
+          </div>
+
+          <!-- History & Analytics Section -->
+          <div class="ingest-analytics-section">
+            <div class="section-tabs">
+              <button class="section-tab active" data-section="stats">Statistics</button>
+              <button class="section-tab" data-section="history">History</button>
+              <button class="section-tab" data-section="graph">Entity Graph</button>
+            </div>
+
+            <!-- Statistics Tab -->
+            <div class="section-panel active" id="stats-panel">
+              <div class="stats-dashboard">
+                <div class="stats-row">
+                  <div class="stat-card-small">
+                    <div class="stat-label">Total Ingested</div>
+                    <div class="stat-value-large" id="statTotalIngested">0</div>
+                  </div>
+                  <div class="stat-card-small">
+                    <div class="stat-label">Success Rate</div>
+                    <div class="stat-value-large text-success" id="statSuccessRate">0%</div>
+                  </div>
+                  <div class="stat-card-small">
+                    <div class="stat-label">Verified</div>
+                    <div class="stat-value-large text-info" id="statVerifiedItems">0</div>
+                  </div>
+                  <div class="stat-card-small">
+                    <div class="stat-label">Unique Pages</div>
+                    <div class="stat-value-large" id="statUniquePagesAnalytics">0</div>
+                  </div>
+                </div>
+
+                <div class="chart-section">
+                  <div class="chart-header">
+                    <h3>Detection Analytics</h3>
+                    <select class="filter-select" id="chartSelect">
+                      <option value="type">By Type</option>
+                      <option value="category">By Category</option>
+                      <option value="trend">Trend (7d)</option>
+                      <option value="status">By Status</option>
+                    </select>
+                  </div>
+                  <div id="analyticsChart" class="chart-canvas"></div>
+                </div>
+
+                <div class="top-lists">
+                  <div class="top-list">
+                    <h4>Top Pattern Types</h4>
+                    <div id="topTypes" class="list-items"></div>
+                  </div>
+                  <div class="top-list">
+                    <h4>Top Pages</h4>
+                    <div id="topPages" class="list-items"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- History Tab -->
+            <div class="section-panel" id="history-panel">
+              <div class="history-controls">
+                <div class="filter-row">
+                  <input type="text" class="filter-input" id="historySearchInput" placeholder="Search value or notes...">
+                  <select class="filter-select" id="historyTypeSelect">
+                    <option value="">All Types</option>
+                    <option value="email">Email</option>
+                    <option value="phone">Phone</option>
+                    <option value="crypto_btc">Bitcoin</option>
+                    <option value="crypto_eth">Ethereum</option>
+                    <option value="domain">Domain</option>
+                    <option value="ip_v4">IPv4</option>
+                  </select>
+                  <select class="filter-select" id="historyStatusSelect">
+                    <option value="">All Status</option>
+                    <option value="success">Success</option>
+                    <option value="failed">Failed</option>
+                    <option value="skipped">Skipped</option>
+                    <option value="verified">Verified</option>
+                  </select>
+                  <input type="date" class="filter-input-small" id="historyDateStart" placeholder="Start">
+                  <input type="date" class="filter-input-small" id="historyDateEnd" placeholder="End">
+                  <button class="btn btn-sm" id="historyRefreshBtn">Refresh</button>
+                </div>
+                <div class="action-row">
+                  <span class="history-info" id="historyInfo">0 items</span>
+                  <div class="action-buttons">
+                    <button class="btn btn-sm" id="exportHistoryJSON">Export JSON</button>
+                    <button class="btn btn-sm" id="exportHistoryCSV">Export CSV</button>
+                    <button class="btn btn-sm" id="clearHistory">Clear All</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="history-table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Type</th>
+                      <th>Value</th>
+                      <th>Status</th>
+                      <th>Page</th>
+                      <th>Conf.</th>
+                    </tr>
+                  </thead>
+                  <tbody id="historyTableBody">
+                    <tr><td colspan="6"><div class="empty-state">No history items</div></td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="pagination-controls">
+                <button class="btn btn-sm" id="historyPrevPage" disabled>Previous</button>
+                <span id="historyPageInfo">Page 1 of 1</span>
+                <button class="btn btn-sm" id="historyNextPage" disabled>Next</button>
+              </div>
+            </div>
+
+            <!-- Entity Graph Tab -->
+            <div class="section-panel" id="graph-panel">
+              <div class="graph-controls">
+                <select class="filter-select" id="graphFilter">
+                  <option value="all">All Entities</option>
+                  <option value="recent">Recent (24h)</option>
+                  <option value="email">Email Entities</option>
+                  <option value="crypto">Crypto Entities</option>
+                  <option value="page">Current Page</option>
+                </select>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="graphShowLabels" checked>
+                  <span>Show Labels</span>
+                </label>
+                <button class="btn btn-sm" id="refreshGraph">Refresh</button>
+              </div>
+
+              <div id="entityGraphContainer" class="entity-graph-area"></div>
+
+              <div class="graph-legend">
+                <h4>Legend</h4>
+                <div class="legend-items">
+                  <div class="legend-item"><span class="legend-dot" style="background: #75beff"></span> Email</div>
+                  <div class="legend-item"><span class="legend-dot" style="background: #73c991"></span> Phone</div>
+                  <div class="legend-item"><span class="legend-dot" style="background: #f7931a"></span> Bitcoin</div>
+                  <div class="legend-item"><span class="legend-dot" style="background: #627eea"></span> Ethereum</div>
+                  <div class="legend-item"><span class="legend-dot" style="background: #9cdcfe"></span> Domain</div>
+                  <div class="legend-item"><span class="legend-dot" style="background: #ce9178"></span> IP Address</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Analytics Tab -->
+        <section class="tab-content" id="analytics-tab">
+          <div class="content-header">
+            <h2>Advanced Analytics Dashboard</h2>
+            <div class="header-actions">
+              <select class="filter-select" id="analyticsLayoutSelect">
+                <option value="default">Overview</option>
+                <option value="investigations">Investigations</option>
+                <option value="patterns">Pattern Analysis</option>
+                <option value="team">Team Performance</option>
+              </select>
+              <select class="filter-select" id="analyticsDateRangeSelect">
+                <option value="last_7_days">Last 7 Days</option>
+                <option value="last_30_days">Last 30 Days</option>
+                <option value="last_90_days">Last 90 Days</option>
+                <option value="this_month">This Month</option>
+                <option value="custom">Custom Range</option>
+              </select>
+              <button class="btn btn-sm" id="analyticsRefreshBtn">Refresh</button>
+              <button class="btn btn-sm" id="analyticsExportBtn">Export</button>
+            </div>
+          </div>
+
+          <!-- Key Metrics -->
+          <div class="analytics-metrics-grid">
+            <div class="analytics-metric-card">
+              <div class="metric-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M16 12l-4-4-4 4M12 16V8"/>
+                </svg>
+              </div>
+              <div class="metric-content">
+                <div class="metric-label">Total Detections</div>
+                <div class="metric-value" id="analyticsTotalDetections">0</div>
+              </div>
+            </div>
+
+            <div class="analytics-metric-card">
+              <div class="metric-icon success">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </div>
+              <div class="metric-content">
+                <div class="metric-label">Success Rate</div>
+                <div class="metric-value text-success" id="analyticsSuccessRate">0%</div>
+              </div>
+            </div>
+
+            <div class="analytics-metric-card">
+              <div class="metric-icon info">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                </svg>
+              </div>
+              <div class="metric-content">
+                <div class="metric-label">Active Investigations</div>
+                <div class="metric-value text-info" id="analyticsActiveInvestigations">0</div>
+              </div>
+            </div>
+
+            <div class="analytics-metric-card">
+              <div class="metric-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+              </div>
+              <div class="metric-content">
+                <div class="metric-label">Avg Investigation Time</div>
+                <div class="metric-value" id="analyticsAvgInvestigationTime">--</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main Analytics Grid -->
+          <div class="analytics-grid">
+            <!-- Detection Trend Chart -->
+            <div class="analytics-card" id="analytics-detection-trend">
+              <div class="analytics-card-header">
+                <h3>Detection Trend</h3>
+                <select class="chart-select" id="trendPeriodSelect">
+                  <option value="7">7 Days</option>
+                  <option value="30">30 Days</option>
+                  <option value="90">90 Days</option>
+                </select>
+              </div>
+              <div class="analytics-chart-container">
+                <div id="detectionTrendChart" class="chart-canvas"></div>
+              </div>
+            </div>
+
+            <!-- Type Distribution Chart -->
+            <div class="analytics-card" id="analytics-type-distribution">
+              <div class="analytics-card-header">
+                <h3>Type Distribution</h3>
+              </div>
+              <div class="analytics-chart-container">
+                <div id="typeDistributionChart" class="chart-canvas"></div>
+              </div>
+            </div>
+
+            <!-- Pattern Heatmap -->
+            <div class="analytics-card full-width" id="analytics-pattern-heatmap">
+              <div class="analytics-card-header">
+                <h3>Activity Heatmap</h3>
+                <span class="card-subtitle">Activity by Day and Hour</span>
+              </div>
+              <div class="analytics-chart-container">
+                <div id="patternHeatmapChart" class="chart-canvas"></div>
+              </div>
+            </div>
+
+            <!-- Intelligence Insights -->
+            <div class="analytics-card" id="analytics-insights">
+              <div class="analytics-card-header">
+                <h3>Intelligence Insights</h3>
+                <span class="badge" id="insightsBadge">0</span>
+              </div>
+              <div class="insights-list" id="insightsList">
+                <div class="empty-state">No insights generated yet</div>
+              </div>
+            </div>
+
+            <!-- Alerts & Recommendations -->
+            <div class="analytics-card" id="analytics-alerts">
+              <div class="analytics-card-header">
+                <h3>Alerts & Recommendations</h3>
+                <span class="badge badge-warning" id="alertsBadge">0</span>
+              </div>
+              <div class="alerts-list" id="alertsList">
+                <div class="empty-state">No active alerts</div>
+              </div>
+            </div>
+
+            <!-- Top Pages Table -->
+            <div class="analytics-card" id="analytics-top-pages">
+              <div class="analytics-card-header">
+                <h3>Top Pages</h3>
+              </div>
+              <div class="analytics-table-container">
+                <table class="analytics-table">
+                  <thead>
+                    <tr>
+                      <th>Page URL</th>
+                      <th>Detections</th>
+                      <th>Percentage</th>
+                    </tr>
+                  </thead>
+                  <tbody id="topPagesTableBody">
+                    <tr><td colspan="3"><div class="empty-state">No data</div></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Network Graph -->
+            <div class="analytics-card full-width" id="analytics-network">
+              <div class="analytics-card-header">
+                <h3>Entity Relationship Network</h3>
+                <div class="card-actions">
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="networkShowLabels" checked>
+                    <span>Show Labels</span>
+                  </label>
+                  <button class="btn btn-sm" id="networkRefreshBtn">Refresh</button>
+                </div>
+              </div>
+              <div class="analytics-chart-container">
+                <div id="networkGraphChart" class="chart-canvas"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Analytics Footer -->
+          <div class="analytics-footer">
+            <div class="analytics-footer-info">
+              Last updated: <span id="analyticsLastUpdated">Never</span>
+            </div>
+            <div class="analytics-footer-actions">
+              <button class="btn btn-sm" id="analyticsShareBtn">Share Dashboard</button>
+              <button class="btn btn-sm" id="analyticsPrintBtn">Print Report</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Workflows Tab -->
+        <section class="tab-content" id="workflows-tab">
+          <div class="content-header">
+            <h2>Workflow Automation</h2>
+            <div class="header-actions">
+              <button class="btn btn-sm" id="importWorkflowBtn">Import JSON</button>
+              <button class="btn btn-sm btn-primary" id="newWorkflowBtn">New Workflow</button>
+            </div>
+          </div>
+
+          <!-- Workflow Sub-Navigation -->
+          <div class="workflow-subnav">
+            <button class="workflow-subnav-btn active" data-panel="library">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+              Library
+            </button>
+            <button class="workflow-subnav-btn" data-panel="builder">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9"/>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+              </svg>
+              Builder
+            </button>
+            <button class="workflow-subnav-btn" data-panel="monitor">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+              </svg>
+              Monitor
+            </button>
+            <button class="workflow-subnav-btn" data-panel="logs">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+              Logs
+            </button>
+            <button class="workflow-subnav-btn" data-panel="schedule">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+              Schedule
+            </button>
+          </div>
+
+          <!-- Library Panel -->
+          <div class="workflow-panel active" id="workflow-library-panel">
+            <div class="workflow-library-header">
+              <input type="text" class="filter-input" id="workflowSearchInput" placeholder="Search workflows...">
+              <select class="filter-select" id="workflowCategoryFilter">
+                <option value="">All Categories</option>
+                <option value="investigation">Investigation</option>
+                <option value="reconnaissance">Reconnaissance</option>
+                <option value="evidence">Evidence Collection</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+
+            <div class="workflow-library-grid" id="workflowLibraryGrid">
+              <!-- Workflow cards will be rendered here -->
+            </div>
+          </div>
+
+          <!-- Builder Panel -->
+          <div class="workflow-panel" id="workflow-builder-panel">
+            <div class="workflow-builder-header">
+              <input type="text" class="workflow-name-input" id="workflowNameInput" placeholder="Workflow Name">
+              <div class="workflow-builder-actions">
+                <button class="btn btn-sm" id="saveWorkflowBtn">Save</button>
+                <button class="btn btn-sm" id="exportWorkflowBtn">Export JSON</button>
+                <button class="btn btn-sm btn-primary" id="executeWorkflowBtn">Execute</button>
+              </div>
+            </div>
+
+            <div class="workflow-builder-toolbar">
+              <div class="workflow-mode-toggle">
+                <button class="mode-btn active" data-mode="visual">Visual</button>
+                <button class="mode-btn" data-mode="code">Code</button>
+              </div>
+              <div class="workflow-step-palette">
+                <button class="step-btn" data-step="navigate" title="Navigate to URL">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 16 16 12 12 8"/>
+                    <line x1="8" y1="12" x2="16" y2="12"/>
+                  </svg>
+                  Navigate
+                </button>
+                <button class="step-btn" data-step="click" title="Click element">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 11l3 3L22 4"/>
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                  </svg>
+                  Click
+                </button>
+                <button class="step-btn" data-step="fill" title="Fill form field">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h10z"/>
+                    <line x1="9" y1="9" x2="15" y2="9"/>
+                    <line x1="9" y1="13" x2="15" y2="13"/>
+                  </svg>
+                  Fill
+                </button>
+                <button class="step-btn" data-step="extract" title="Extract data">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  Extract
+                </button>
+                <button class="step-btn" data-step="detect" title="Detect OSINT patterns">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.35-4.35"/>
+                  </svg>
+                  Detect
+                </button>
+                <button class="step-btn" data-step="wait" title="Wait for element/time">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  Wait
+                </button>
+                <button class="step-btn" data-step="screenshot" title="Take screenshot">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                  </svg>
+                  Screenshot
+                </button>
+                <button class="step-btn" data-step="condition" title="Conditional logic">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14"/>
+                    <path d="M12 5l7 7-7 7"/>
+                  </svg>
+                  If/Else
+                </button>
+                <button class="step-btn" data-step="loop" title="Loop over items">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                  </svg>
+                  Loop
+                </button>
+              </div>
+            </div>
+
+            <!-- Visual Editor -->
+            <div class="workflow-builder-content" id="workflowBuilderVisual">
+              <div class="workflow-steps-list" id="workflowStepsList">
+                <div class="empty-state">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 20h9"/>
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                  </svg>
+                  <p>Add steps from the toolbar above to build your workflow</p>
+                </div>
+              </div>
+              <div class="workflow-step-config" id="workflowStepConfig">
+                <div class="empty-state">
+                  <p>Select a step to configure</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Code Editor -->
+            <div class="workflow-builder-content" id="workflowBuilderCode" style="display: none;">
+              <textarea class="workflow-code-editor" id="workflowCodeEditor" placeholder="Enter workflow JSON...">{
+  "id": "new-workflow",
+  "name": "New Workflow",
+  "version": "1.0.0",
+  "steps": []
+}</textarea>
+              <div class="code-editor-actions">
+                <button class="btn btn-sm" id="formatCodeBtn">Format JSON</button>
+                <button class="btn btn-sm" id="validateCodeBtn">Validate</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Monitor Panel -->
+          <div class="workflow-panel" id="workflow-monitor-panel">
+            <div class="workflow-monitor-header">
+              <div class="execution-status" id="executionStatus">
+                <span class="status-indicator" id="executionStatusIndicator"></span>
+                <span class="status-text" id="executionStatusText">No workflow running</span>
+              </div>
+              <div class="execution-controls">
+                <button class="btn btn-sm" id="pauseExecutionBtn" disabled>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="6" y="4" width="4" height="16"/>
+                    <rect x="14" y="4" width="4" height="16"/>
+                  </svg>
+                  Pause
+                </button>
+                <button class="btn btn-sm" id="resumeExecutionBtn" disabled>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                  Resume
+                </button>
+                <button class="btn btn-sm btn-primary" id="cancelExecutionBtn" disabled>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                  Cancel
+                </button>
+              </div>
+            </div>
+
+            <div class="execution-progress">
+              <div class="progress-bar">
+                <div class="progress-fill" id="executionProgressFill" style="width: 0%"></div>
+              </div>
+              <div class="progress-info">
+                <span id="executionProgressText">0 / 0 steps</span>
+                <span id="executionTimeElapsed">0:00</span>
+              </div>
+            </div>
+
+            <div class="workflow-monitor-content">
+              <div class="execution-steps" id="executionSteps">
+                <div class="empty-state">
+                  <p>No execution in progress</p>
+                </div>
+              </div>
+              <div class="execution-variables" id="executionVariables">
+                <h4>Variables</h4>
+                <div class="variables-list" id="variablesList">
+                  <div class="empty-state">No variables</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="execution-stats" id="executionStats">
+              <div class="stat-item">
+                <span class="stat-label">Steps Completed:</span>
+                <span class="stat-value" id="stepsCompleted">0</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Steps Failed:</span>
+                <span class="stat-value text-error" id="stepsFailed">0</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Time Elapsed:</span>
+                <span class="stat-value" id="timeElapsedStat">0s</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Start Time:</span>
+                <span class="stat-value" id="startTimeStat">--</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Logs Panel -->
+          <div class="workflow-panel" id="workflow-logs-panel">
+            <div class="workflow-logs-toolbar">
+              <input type="text" class="filter-input" id="logFilterInput" placeholder="Filter logs...">
+              <select class="filter-select" id="logLevelFilter">
+                <option value="">All Levels</option>
+                <option value="debug">Debug</option>
+                <option value="info">Info</option>
+                <option value="warn">Warning</option>
+                <option value="error">Error</option>
+              </select>
+              <button class="btn btn-sm" id="clearLogsBtn">Clear</button>
+              <button class="btn btn-sm" id="exportLogsBtn">Export</button>
+            </div>
+
+            <div class="workflow-logs-content" id="workflowLogsContent">
+              <div class="empty-state">No execution logs</div>
+            </div>
+          </div>
+
+          <!-- Schedule Panel -->
+          <div class="workflow-panel" id="workflow-schedule-panel">
+            <div class="workflow-schedule-header">
+              <button class="btn btn-sm btn-primary" id="newScheduleBtn">New Schedule</button>
+            </div>
+
+            <div class="workflow-schedule-list" id="workflowScheduleList">
+              <div class="empty-state">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <p>No scheduled workflows</p>
+                <p class="text-secondary">Schedule workflows to run automatically at specific times</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- Console Tab -->
         <section class="tab-content" id="console-tab">
           <div class="content-header">
@@ -424,6 +1172,15 @@
 
   </div>
 
+  <script src="utils/devtools/ingest-history.js"></script>
+  <script src="utils/devtools/detection-analytics.js"></script>
+  <script src="utils/devtools/entity-graph-mini.js"></script>
+  <script src="utils/analytics/analytics-dashboard.js"></script>
+  <script src="utils/analytics/pattern-analysis.js"></script>
+  <script src="utils/analytics/intelligence-insights.js"></script>
+  <script src="utils/analytics/visualization-components.js"></script>
+  <script src="utils/analytics/analytics-exporter.js"></script>
   <script src="devtools-panel.js"></script>
+  <script src="utils/devtools/ingest-panel-integration.js"></script>
 </body>
 </html>

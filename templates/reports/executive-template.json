@@ -1,0 +1,27 @@
+{
+  "id": "executive-briefing",
+  "name": "Executive Briefing",
+  "description": "High-level executive summary report",
+  "version": "1.0.0",
+  "category": "executive",
+  "sections": [
+    "coverPage",
+    "executiveSummary",
+    "keyFindings",
+    "impactAssessment",
+    "recommendations",
+    "conclusion"
+  ],
+  "styling": {
+    "primaryColor": "#34495e",
+    "secondaryColor": "#e74c3c",
+    "fontFamily": "Arial, sans-serif",
+    "fontSize": 12,
+    "pageMargins": {
+      "top": 25,
+      "right": 25,
+      "bottom": 25,
+      "left": 25
+    }
+  }
+}

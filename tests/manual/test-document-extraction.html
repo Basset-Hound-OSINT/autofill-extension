@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phase 16: Document Extraction Test Page</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+
+    h1 {
+      color: #333;
+      border-bottom: 3px solid #4CAF50;
+      padding-bottom: 10px;
+    }
+
+    .section {
+      background: white;
+      margin: 20px 0;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      color: #4CAF50;
+      margin-top: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #4CAF50;
+      color: white;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+
+    .test-image {
+      max-width: 100%;
+      border: 2px solid #ddd;
+      border-radius: 4px;
+      padding: 5px;
+    }
+
+    .screenshot {
+      background: white;
+      border: 1px solid #ccc;
+      padding: 20px;
+      margin: 10px 0;
+      font-family: 'Courier New', monospace;
+    }
+
+    .document-image {
+      background: white;
+      padding: 30px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+      margin: 20px 0;
+    }
+
+    .invoice {
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    .info {
+      background-color: #e7f3ff;
+      border-left: 4px solid #2196F3;
+      padding: 15px;
+      margin: 15px 0;
+    }
+
+    .warning {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      margin: 15px 0;
+    }
+
+    .code {
+      background-color: #f4f4f4;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 10px;
+      margin: 10px 0;
+      font-family: 'Courier New', monospace;
+      white-space: pre-wrap;
+    }
+
+    canvas {
+      border: 1px solid #ddd;
+      background: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>Phase 16: Document Extraction Test Page</h1>
+
+  <div class="info">
+    <strong>Test Instructions:</strong>
+    <ol>
+      <li>Load the Basset Hound extension</li>
+      <li>Open DevTools (F12)</li>
+      <li>Use the extension commands to test extraction features</li>
+      <li>Test each section: PDF extraction, image OCR, and table parsing</li>
+    </ol>
+  </div>
+
+  <!-- Section 1: PDF Detection -->
+  <div class="section">
+    <h2>1. PDF Detection Test</h2>
+    <p>This section contains various PDF embedding methods for detection testing.</p>
+
+    <h3>Embedded PDF (iframe)</h3>
+    <iframe
+      src="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+      width="100%"
+      height="400px"
+      id="test-pdf-iframe">
+    </iframe>
+
+    <h3>PDF Link</h3>
+    <p><a href="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf">Download Sample PDF</a></p>
+
+    <div class="code">
+// Test command:
+chrome.runtime.sendMessage({
+  command: 'detect_pdfs'
+}, (response) => {
+  console.log('Detected PDFs:', response);
+});
+    </div>
+  </div>
+
+  <!-- Section 2: Image OCR Test -->
+  <div class="section">
+    <h2>2. Image OCR Test</h2>
+    <p>Images with text for OCR extraction testing.</p>
+
+    <h3>Screenshot-like Image</h3>
+    <div class="screenshot">
+      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='200'%3E%3Crect fill='%23fff' width='600' height='200'/%3E%3Ctext x='20' y='40' font-family='Arial' font-size='24' fill='%23000'%3EInvoice %23INV-2024-001%3C/text%3E%3Ctext x='20' y='80' font-family='Arial' font-size='16' fill='%23000'%3EContact: john.doe@example.com%3C/text%3E%3Ctext x='20' y='110' font-family='Arial' font-size='16' fill='%23000'%3EPhone: (555) 123-4567%3C/text%3E%3Ctext x='20' y='140' font-family='Arial' font-size='16' fill='%23000'%3EAddress: 123 Main St, Anytown, USA%3C/text%3E%3C/svg%3E"
+           class="test-image screenshot"
+           alt="screenshot with text"
+           id="test-screenshot">
+    </div>
+
+    <h3>Document Image</h3>
+    <div class="document-image invoice">
+      <canvas id="invoiceCanvas" width="500" height="300"></canvas>
+    </div>
+
+    <div class="code">
+// Test command:
+chrome.runtime.sendMessage({
+  command: 'detect_text_images',
+  params: { threshold: 0.3 }
+}, (response) => {
+  console.log('Detected text images:', response);
+});
+
+// Extract text from specific image:
+chrome.runtime.sendMessage({
+  command: 'extract_image_text',
+  params: {
+    imageUrl: 'IMAGE_URL_HERE',
+    language: 'eng'
+  }
+}, (response) => {
+  console.log('OCR results:', response);
+});
+    </div>
+  </div>
+
+  <!-- Section 3: Table Parsing Test -->
+  <div class="section">
+    <h2>3. Table Parsing Test</h2>
+    <p>Various table formats for parsing and OSINT analysis.</p>
+
+    <h3>Employee Contact Table (Contains OSINT Data)</h3>
+    <table id="employee-table">
+      <caption>Employee Contact Information</caption>
+      <thead>
+        <tr>
+          <th>Employee ID</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Department</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>EMP001</td>
+          <td>John Doe</td>
+          <td>john.doe@company.com</td>
+          <td>(555) 123-4567</td>
+          <td>Engineering</td>
+        </tr>
+        <tr>
+          <td>EMP002</td>
+          <td>Jane Smith</td>
+          <td>jane.smith@company.com</td>
+          <td>(555) 987-6543</td>
+          <td>Marketing</td>
+        </tr>
+        <tr>
+          <td>EMP003</td>
+          <td>Bob Johnson</td>
+          <td>bob.johnson@company.com</td>
+          <td>(555) 456-7890</td>
+          <td>Sales</td>
+        </tr>
+        <tr>
+          <td>EMP004</td>
+          <td>Alice Williams</td>
+          <td>alice.williams@company.com</td>
+          <td>(555) 234-5678</td>
+          <td>HR</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Network Log Table (IP Addresses)</h3>
+    <table id="network-table">
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Source IP</th>
+          <th>Destination IP</th>
+          <th>Protocol</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>2024-01-09 10:15:23</td>
+          <td>192.168.1.100</td>
+          <td>203.0.113.45</td>
+          <td>HTTPS</td>
+          <td>200 OK</td>
+        </tr>
+        <tr>
+          <td>2024-01-09 10:15:24</td>
+          <td>192.168.1.100</td>
+          <td>198.51.100.10</td>
+          <td>HTTP</td>
+          <td>404 Not Found</td>
+        </tr>
+        <tr>
+          <td>2024-01-09 10:15:25</td>
+          <td>192.168.1.101</td>
+          <td>203.0.113.45</td>
+          <td>HTTPS</td>
+          <td>200 OK</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Financial Data Table</h3>
+    <table id="financial-table">
+      <thead>
+        <tr>
+          <th>Transaction ID</th>
+          <th>Date</th>
+          <th>Account</th>
+          <th>Amount</th>
+          <th>Type</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>TXN001</td>
+          <td>2024-01-05</td>
+          <td>4532-1234-5678-9012</td>
+          <td>$1,234.56</td>
+          <td>Credit</td>
+        </tr>
+        <tr>
+          <td>TXN002</td>
+          <td>2024-01-06</td>
+          <td>4532-1234-5678-9012</td>
+          <td>$567.89</td>
+          <td>Debit</td>
+        </tr>
+        <tr>
+          <td>TXN003</td>
+          <td>2024-01-07</td>
+          <td>4532-1234-5678-9012</td>
+          <td>$2,345.67</td>
+          <td>Credit</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="code">
+// Test command - Extract all tables:
+chrome.runtime.sendMessage({
+  command: 'extract_tables',
+  params: {
+    minRows: 1,
+    analyzeOSINT: true
+  }
+}, (response) => {
+  console.log('Extracted tables:', response);
+});
+
+// Extract specific table:
+chrome.runtime.sendMessage({
+  command: 'extract_tables',
+  params: {
+    selector: '#employee-table',
+    analyzeOSINT: true
+  }
+}, (response) => {
+  console.log('Employee table:', response);
+});
+    </div>
+  </div>
+
+  <!-- Section 4: Complex Nested Table -->
+  <div class="section">
+    <h2>4. Complex Table Test</h2>
+    <p>Nested table structure for advanced parsing.</p>
+
+    <table id="complex-table">
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Details</th>
+          <th>Contact</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Sales</td>
+          <td>
+            <table>
+              <tr>
+                <td>Q1: $100,000</td>
+                <td>Q2: $150,000</td>
+              </tr>
+            </table>
+          </td>
+          <td>sales@company.com</td>
+        </tr>
+        <tr>
+          <td>Support</td>
+          <td>24/7 Available</td>
+          <td>support@company.com</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Section 5: Test Controls -->
+  <div class="section">
+    <h2>5. Quick Test Controls</h2>
+    <p>Use these buttons to quickly test extraction features (requires extension loaded).</p>
+
+    <button onclick="testDetectPDFs()">Detect PDFs</button>
+    <button onclick="testDetectImages()">Detect Text Images</button>
+    <button onclick="testExtractTables()">Extract All Tables</button>
+    <button onclick="testExtractEmployeeTable()">Extract Employee Table</button>
+    <button onclick="clearResults()">Clear Results</button>
+
+    <div id="results" style="margin-top: 20px;">
+      <h3>Test Results:</h3>
+      <div id="resultOutput" class="code"></div>
+    </div>
+  </div>
+
+  <!-- Section 6: Test Data -->
+  <div class="section">
+    <h2>6. Additional Test Content</h2>
+
+    <div class="warning">
+      <strong>Sensitive Data Warning:</strong> This section contains mock sensitive data for OSINT pattern detection testing.
+    </div>
+
+    <h3>Sample Text with OSINT Patterns</h3>
+    <div class="code">
+Contact Information:
+Name: John Doe
+Email: john.doe@example.com
+Phone: (555) 123-4567
+SSN: 123-45-6789
+Address: 123 Main Street, Anytown, ST 12345
+IP Address: 192.168.1.1
+Website: https://example.com
+Bitcoin Address: 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa
+    </div>
+  </div>
+
+  <script>
+    // Initialize canvas with invoice text
+    function initInvoiceCanvas() {
+      const canvas = document.getElementById('invoiceCanvas');
+      const ctx = canvas.getContext('2d');
+
+      // Background
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Text
+      ctx.fillStyle = 'black';
+      ctx.font = '16px Arial';
+      ctx.fillText('INVOICE #INV-2024-001', 20, 30);
+      ctx.font = '14px Arial';
+      ctx.fillText('Date: January 9, 2024', 20, 60);
+      ctx.fillText('Customer: John Doe', 20, 85);
+      ctx.fillText('Email: john.doe@example.com', 20, 110);
+      ctx.fillText('Phone: (555) 123-4567', 20, 135);
+      ctx.fillText('Total: $1,234.56', 20, 160);
+      ctx.fillText('Payment Method: Credit Card ****-9012', 20, 185);
+    }
+
+    // Test functions
+    function testDetectPDFs() {
+      console.log('Testing PDF detection...');
+      displayResult('Testing PDF detection...');
+
+      chrome.runtime.sendMessage({
+        type: 'detect_pdfs',
+        params: {}
+      }, (response) => {
+        console.log('PDF detection result:', response);
+        displayResult(JSON.stringify(response, null, 2));
+      });
+    }
+
+    function testDetectImages() {
+      console.log('Testing text image detection...');
+      displayResult('Testing text image detection...');
+
+      chrome.runtime.sendMessage({
+        type: 'detect_text_images',
+        params: { threshold: 0.3 }
+      }, (response) => {
+        console.log('Image detection result:', response);
+        displayResult(JSON.stringify(response, null, 2));
+      });
+    }
+
+    function testExtractTables() {
+      console.log('Testing table extraction...');
+      displayResult('Testing table extraction...');
+
+      chrome.runtime.sendMessage({
+        type: 'extract_tables',
+        params: {
+          minRows: 1,
+          analyzeOSINT: true
+        }
+      }, (response) => {
+        console.log('Table extraction result:', response);
+        displayResult(JSON.stringify(response, null, 2));
+      });
+    }
+
+    function testExtractEmployeeTable() {
+      console.log('Testing employee table extraction...');
+      displayResult('Testing employee table extraction...');
+
+      chrome.runtime.sendMessage({
+        type: 'extract_tables',
+        params: {
+          selector: '#employee-table',
+          analyzeOSINT: true
+        }
+      }, (response) => {
+        console.log('Employee table result:', response);
+        displayResult(JSON.stringify(response, null, 2));
+      });
+    }
+
+    function displayResult(text) {
+      const output = document.getElementById('resultOutput');
+      output.textContent = text;
+    }
+
+    function clearResults() {
+      document.getElementById('resultOutput').textContent = '';
+    }
+
+    // Initialize on load
+    window.addEventListener('load', () => {
+      initInvoiceCanvas();
+      console.log('Test page loaded. Extension commands available.');
+    });
+  </script>
+</body>
+</html>

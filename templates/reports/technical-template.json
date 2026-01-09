@@ -1,0 +1,31 @@
+{
+  "id": "technical-analysis",
+  "name": "Technical Analysis Report",
+  "description": "Detailed technical investigation report",
+  "version": "1.0.0",
+  "category": "technical",
+  "sections": [
+    "coverPage",
+    "tableOfContents",
+    "introduction",
+    "methodology",
+    "technicalFindings",
+    "networkAnalysis",
+    "osintData",
+    "evidenceDetails",
+    "chainOfCustody",
+    "conclusion"
+  ],
+  "styling": {
+    "primaryColor": "#2c3e50",
+    "secondaryColor": "#16a085",
+    "fontFamily": "Courier New, monospace",
+    "fontSize": 10,
+    "pageMargins": {
+      "top": 15,
+      "right": 15,
+      "bottom": 15,
+      "left": 15
+    }
+  }
+}

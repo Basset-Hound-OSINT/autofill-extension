@@ -1,0 +1,343 @@
+{
+  "$schema": "https://basset-hound.io/schemas/workflow/v1.0.0",
+  "id": "5e7f9a1b-6c8d-7e1f-2a3b-4d5e6f7a8b9c",
+  "name": "Multi-Page Evidence Collection",
+  "description": "Collect evidence from multiple pages in a session: Navigate to each URL, capture screenshots, extract metadata, detect OSINT patterns, and export to evidence session.",
+  "version": "1.0.0",
+  "author": "Basset Hound Team",
+  "tags": ["evidence", "multi-page", "session", "collection", "forensics"],
+  "category": "general",
+  "inputs": [
+    {
+      "name": "caseId",
+      "type": "string",
+      "label": "Case ID",
+      "description": "Case identifier for evidence session",
+      "required": true
+    },
+    {
+      "name": "urls",
+      "type": "array",
+      "label": "URLs to Collect",
+      "description": "Array of URLs to visit and collect evidence from",
+      "required": true,
+      "validation": {
+        "min": 1,
+        "max": 50
+      }
+    },
+    {
+      "name": "investigator",
+      "type": "string",
+      "label": "Investigator Name",
+      "description": "Name of investigator conducting collection",
+      "required": false,
+      "default": "Unknown"
+    },
+    {
+      "name": "sessionName",
+      "type": "string",
+      "label": "Session Name",
+      "description": "Name for evidence session",
+      "required": false,
+      "default": "Multi-Page Evidence Collection"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "sessionId",
+      "type": "string",
+      "description": "Evidence session ID"
+    },
+    {
+      "name": "evidenceCount",
+      "type": "number",
+      "description": "Total evidence items collected"
+    },
+    {
+      "name": "exportPath",
+      "type": "string",
+      "description": "Path to exported session file"
+    }
+  ],
+  "variables": {
+    "sessionId": null,
+    "evidenceCount": 0,
+    "pagesCollected": 0,
+    "totalLinks": 0,
+    "osintItemsFound": 0
+  },
+  "config": {
+    "timeout": 1800000,
+    "retryPolicy": {
+      "enabled": true,
+      "maxRetries": 2,
+      "retryDelay": 2000,
+      "retryBackoff": "exponential"
+    },
+    "evidence": {
+      "captureScreenshots": true,
+      "captureDOM": true,
+      "captureNetwork": false
+    },
+    "execution": {
+      "mode": "sequential",
+      "maxParallel": 1,
+      "continueOnError": true
+    }
+  },
+  "steps": [
+    {
+      "id": "start-evidence-session",
+      "name": "Start Evidence Session",
+      "type": "script",
+      "description": "Create new evidence session via MCP command",
+      "params": {
+        "code": "console.log('[Workflow] Starting evidence session: ' + sessionName); return { note: 'In real implementation, this would call start_evidence_session MCP command', sessionId: 'ses_' + Date.now() };"
+      },
+      "outputs": {
+        "sessionId": "sessionId"
+      }
+    },
+    {
+      "id": "log-session-start",
+      "name": "Log Session Start",
+      "type": "script",
+      "description": "Log session metadata",
+      "params": {
+        "code": "console.log('[Evidence Session] ID: ' + sessionId + ', Case: ' + caseId + ', Investigator: ' + investigator + ', URLs: ' + urls.length); return { logged: true };"
+      }
+    },
+    {
+      "id": "loop-urls",
+      "name": "Loop Through URLs",
+      "type": "loop",
+      "description": "Visit each URL and collect evidence",
+      "params": {
+        "items": "${urls}",
+        "variable": "url",
+        "maxIterations": 50,
+        "steps": [
+          {
+            "id": "log-page-start",
+            "name": "Log Page Collection Start",
+            "type": "script",
+            "description": "Log which page is being collected",
+            "params": {
+              "code": "pagesCollected++; console.log('[Evidence Collection] Page ' + pagesCollected + '/' + urls.length + ': ' + url); return { pageNumber: pagesCollected };"
+            }
+          },
+          {
+            "id": "nav-page",
+            "name": "Navigate to Page",
+            "type": "navigate",
+            "description": "Navigate to target URL",
+            "params": {
+              "url": "${url}",
+              "waitUntil": "networkidle2",
+              "timeout": 20000
+            },
+            "timeout": 25000,
+            "retries": 2,
+            "continueOnError": true
+          },
+          {
+            "id": "wait-page-load",
+            "name": "Wait for Page Load",
+            "type": "wait",
+            "description": "Wait for page to fully load",
+            "params": {
+              "for": "time",
+              "time": 2000
+            },
+            "continueOnError": true
+          },
+          {
+            "id": "capture-full-page-screenshot",
+            "name": "Capture Full Page Screenshot",
+            "type": "screenshot",
+            "description": "Take full-page screenshot",
+            "params": {
+              "fullPage": true,
+              "format": "png"
+            },
+            "outputs": {
+              "pageScreenshot": "dataUrl"
+            },
+            "continueOnError": true
+          },
+          {
+            "id": "extract-page-metadata",
+            "name": "Extract Page Metadata",
+            "type": "extract",
+            "description": "Extract page title, meta tags, and basic info",
+            "params": {
+              "mode": "structured",
+              "selectors": {
+                "title": "title",
+                "metaDescription": "meta[name='description']",
+                "metaAuthor": "meta[name='author']",
+                "metaKeywords": "meta[name='keywords']",
+                "ogTitle": "meta[property='og:title']",
+                "ogDescription": "meta[property='og:description']",
+                "canonicalUrl": "link[rel='canonical']"
+              }
+            },
+            "outputs": {
+              "pageMetadata": "result"
+            },
+            "continueOnError": true
+          },
+          {
+            "id": "detect-osint-patterns",
+            "name": "Detect OSINT Patterns",
+            "type": "detect",
+            "description": "Detect emails, phones, crypto addresses, IPs, domains",
+            "params": {
+              "patterns": ["email", "phone", "crypto_btc", "crypto_eth", "ipv4", "ipv6", "domain"],
+              "context": true,
+              "highlight": false
+            },
+            "outputs": {
+              "osintDetected": "results"
+            },
+            "continueOnError": true
+          },
+          {
+            "id": "extract-all-links",
+            "name": "Extract All Links",
+            "type": "script",
+            "description": "Extract all hyperlinks on page",
+            "params": {
+              "code": "const links = document.querySelectorAll('a[href]'); const linkData = Array.from(links).slice(0, 200).map(link => ({ href: link.href, text: link.textContent.trim().substring(0, 100), title: link.title || null })); totalLinks += linkData.length; return { linkCount: linkData.length, links: linkData };"
+            },
+            "outputs": {
+              "pageLinks": "links",
+              "linkCount": "linkCount"
+            },
+            "continueOnError": true
+          },
+          {
+            "id": "count-osint-items",
+            "name": "Count OSINT Items",
+            "type": "script",
+            "description": "Count OSINT items found",
+            "params": {
+              "code": "const count = osintDetected ? osintDetected.length : 0; osintItemsFound += count; return { osintCount: count };"
+            },
+            "outputs": {
+              "pageOsintCount": "osintCount"
+            },
+            "continueOnError": true
+          },
+          {
+            "id": "add-to-evidence-session",
+            "name": "Add Evidence to Session",
+            "type": "script",
+            "description": "Add collected evidence to session (via MCP in real implementation)",
+            "params": {
+              "code": "const evidence = { type: 'page-collection', url: url, metadata: pageMetadata, osintData: osintDetected, links: pageLinks, screenshot: pageScreenshot, collectedAt: Date.now(), pageNumber: pagesCollected, caseId: caseId }; evidenceCount++; console.log('[Evidence] Added to session: ' + url + ' (' + pageOsintCount + ' OSINT items, ' + linkCount + ' links)'); return { added: true, evidenceId: 'evi_' + Date.now() };"
+            },
+            "outputs": {
+              "evidenceId": "evidenceId"
+            },
+            "continueOnError": true
+          },
+          {
+            "id": "ingest-page-data",
+            "name": "Ingest Page Data",
+            "type": "ingest",
+            "description": "Send page data to basset-hound",
+            "params": {
+              "entityType": "webpage",
+              "data": {
+                "url": "${url}",
+                "caseId": "${caseId}",
+                "sessionId": "${sessionId}",
+                "metadata": "${pageMetadata}",
+                "osintData": "${osintDetected}",
+                "linkCount": "${linkCount}",
+                "evidence": {
+                  "screenshot": "${pageScreenshot}",
+                  "evidenceId": "${evidenceId}",
+                  "timestamp": "${Date.now()}"
+                }
+              }
+            },
+            "outputs": {
+              "entityId": "id"
+            },
+            "continueOnError": true
+          },
+          {
+            "id": "rate-limit-delay",
+            "name": "Rate Limit Delay",
+            "type": "wait",
+            "description": "Wait 1 second between pages",
+            "params": {
+              "for": "time",
+              "time": 1000
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "close-evidence-session",
+      "name": "Close Evidence Session",
+      "type": "script",
+      "description": "Close evidence session and prepare for export",
+      "params": {
+        "code": "console.log('[Evidence Session] Closing session ' + sessionId + ' with ' + evidenceCount + ' items'); return { closed: true, summary: { sessionId: sessionId, caseId: caseId, investigator: investigator, pagesCollected: pagesCollected, evidenceItems: evidenceCount, osintItemsFound: osintItemsFound, totalLinks: totalLinks, completedAt: new Date().toISOString() } };"
+      },
+      "outputs": {
+        "sessionSummary": "summary"
+      }
+    },
+    {
+      "id": "export-evidence-session",
+      "name": "Export Evidence Session",
+      "type": "script",
+      "description": "Export evidence session to JSON + PDF (via MCP in real implementation)",
+      "params": {
+        "code": "const exportPath = '/exports/evidence_session_' + sessionId + '_' + Date.now() + '.json'; console.log('[Export] Exporting session to: ' + exportPath); return { exported: true, exportPath: exportPath, format: 'json' };"
+      },
+      "outputs": {
+        "exportPath": "exportPath"
+      }
+    },
+    {
+      "id": "generate-collection-report",
+      "name": "Generate Collection Report",
+      "type": "script",
+      "description": "Create comprehensive collection report",
+      "params": {
+        "code": "const report = { sessionId: sessionId, caseId: caseId, investigator: investigator, sessionName: sessionName, timestamp: new Date().toISOString(), collection: { totalUrls: urls.length, pagesCollected: pagesCollected, successRate: Math.round((pagesCollected / urls.length) * 100) + '%' }, evidence: { totalItems: evidenceCount, screenshots: pagesCollected, metadataRecords: pagesCollected }, osint: { totalPatterns: osintItemsFound, averagePerPage: Math.round(osintItemsFound / pagesCollected * 10) / 10 }, links: { totalExtracted: totalLinks, averagePerPage: Math.round(totalLinks / pagesCollected) }, export: { path: exportPath, format: 'json' }, summary: sessionSummary, chainOfCustody: { investigator: investigator, startTime: 'N/A', endTime: new Date().toISOString(), signature: 'Digital signature would be added here' } }; console.log('Collection Report:', JSON.stringify(report, null, 2)); return report;"
+      },
+      "outputs": {
+        "report": "result"
+      }
+    },
+    {
+      "id": "ingest-session",
+      "name": "Ingest Session Report",
+      "type": "ingest",
+      "description": "Send session report to basset-hound",
+      "params": {
+        "entityType": "investigation",
+        "data": {
+          "type": "multi-page-evidence-collection",
+          "sessionId": "${sessionId}",
+          "caseId": "${caseId}",
+          "report": "${report}",
+          "summary": "${sessionSummary}",
+          "exportPath": "${exportPath}",
+          "timestamp": "${Date.now()}"
+        }
+      },
+      "outputs": {
+        "investigationId": "id"
+      }
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "id": "evidence-documentation",
+  "name": "Evidence Documentation",
+  "description": "Comprehensive evidence catalog and documentation",
+  "version": "1.0.0",
+  "category": "evidence",
+  "sections": [
+    "coverPage",
+    "tableOfContents",
+    "evidenceList",
+    "evidenceDetails",
+    "screenshots",
+    "integrity",
+    "chainOfCustody",
+    "certifications"
+  ],
+  "styling": {
+    "primaryColor": "#2c3e50",
+    "secondaryColor": "#27ae60",
+    "fontFamily": "Times New Roman, serif",
+    "fontSize": 11,
+    "pageMargins": {
+      "top": 25,
+      "right": 25,
+      "bottom": 25,
+      "left": 25
+    }
+  }
+}

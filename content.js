@@ -431,6 +431,19 @@ async function handleMessage(request) {
     case 'capture_element_provenance':
       return handleCaptureElementProvenance(request.selector, request.options);
 
+    // Phase 14: Evidence Session Management
+    case 'toggle_session_panel':
+      return handleToggleSessionPanel();
+
+    case 'update_session':
+      return handleUpdateSession(request.session);
+
+    case 'capture_page_forensics':
+      return handleCapturePageForensics(request.options);
+
+    case 'capture_browser_snapshot':
+      return handleCaptureBrowserSnapshot(request.options);
+
     default:
       throw new Error(`Unknown action: ${request.action}`);
   }
@@ -8188,6 +8201,9 @@ let elementPicker = null;
 let ingestPanel = null;
 let provenanceCapture = null;
 
+// Phase 14: Evidence Session Management
+let sessionPanel = null;
+
 /**
  * Initialize OSINT field detector
  * @returns {OSINTFieldDetector} Field detector instance
@@ -8248,6 +8264,22 @@ function getIngestPanel(options = {}) {
     });
   }
   return ingestPanel;
+}
+
+/**
+ * Initialize session panel (Phase 14)
+ * @param {Object} options - Panel options
+ * @returns {SessionPanel} Session panel instance
+ */
+function getSessionPanel(options = {}) {
+  if (!sessionPanel && typeof SessionPanel !== 'undefined') {
+    sessionPanel = new SessionPanel({
+      position: 'bottom-right',
+      logger: contentLogger,
+      ...options
+    });
+  }
+  return sessionPanel;
 }
 
 /**
@@ -8502,6 +8534,117 @@ async function handleCaptureElementProvenance(selector, options = {}) {
 }
 
 // =============================================================================
+// Phase 14: Evidence Session Management Handlers
+// =============================================================================
+
+/**
+ * Toggle session panel visibility
+ * @returns {Promise<Object>} Success response
+ */
+async function handleToggleSessionPanel() {
+  try {
+    const panel = getSessionPanel();
+    if (!panel) {
+      return { success: false, error: 'SessionPanel not available' };
+    }
+
+    panel.toggle();
+    contentLogger.debug('Session panel toggled');
+
+    return { success: true };
+  } catch (error) {
+    contentLogger.error('Failed to toggle session panel', { error: error.message });
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Update session data in the panel
+ * @param {Object} session - Session data
+ * @returns {Promise<Object>} Success response
+ */
+async function handleUpdateSession(session) {
+  try {
+    if (!session) {
+      return { success: false, error: 'Session data required' };
+    }
+
+    const panel = getSessionPanel();
+    if (panel) {
+      panel.updateSession(session);
+      contentLogger.debug('Session panel updated', { sessionId: session.id });
+    }
+
+    return { success: true };
+  } catch (error) {
+    contentLogger.error('Failed to update session', { error: error.message });
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Capture page forensics data
+ * @param {Object} options - Capture options
+ * @returns {Promise<Object>} Forensics data
+ */
+async function handleCapturePageForensics(options = {}) {
+  try {
+    // Check if forensics module is loaded
+    if (typeof PageForensics === 'undefined') {
+      return { success: false, error: 'PageForensics module not loaded' };
+    }
+
+    contentLogger.info('Capturing page forensics', { options });
+
+    const forensics = new PageForensics();
+    const data = await forensics.captureForensics(options);
+
+    contentLogger.debug('Page forensics captured', {
+      dataSize: JSON.stringify(data).length
+    });
+
+    return {
+      success: true,
+      data: data
+    };
+  } catch (error) {
+    contentLogger.error('Failed to capture page forensics', { error: error.message });
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Capture browser snapshot data
+ * @param {Object} options - Snapshot options
+ * @returns {Promise<Object>} Snapshot data
+ */
+async function handleCaptureBrowserSnapshot(options = {}) {
+  try {
+    // Check if snapshot module is loaded
+    if (typeof BrowserSnapshot === 'undefined') {
+      return { success: false, error: 'BrowserSnapshot module not loaded' };
+    }
+
+    contentLogger.info('Capturing browser snapshot', { options });
+
+    const snapshot = new BrowserSnapshot();
+    const data = await snapshot.captureSnapshot(options);
+
+    contentLogger.debug('Browser snapshot captured', {
+      dataSize: JSON.stringify(data).length
+    });
+
+    return {
+      success: true,
+      data: data
+    };
+  } catch (error) {
+    contentLogger.error('Failed to capture browser snapshot', { error: error.message });
+    return { success: false, error: error.message };
+  }
+}
+
+// =============================================================================
 // Initialization
 // =============================================================================
 
@@ -8522,3 +8665,48 @@ try {
   // Extension context might be invalidated, ignore
   contentLogger.debug('Could not notify background of ready state');
 }
+
+// =============================================================================
+// Phase 14: Keyboard Shortcuts for Evidence Session Management
+// =============================================================================
+
+/**
+ * Global keyboard event handler for evidence session shortcuts
+ */
+document.addEventListener('keydown', (e) => {
+  // Ctrl+Shift+E - Toggle session panel
+  if (e.ctrlKey && e.shiftKey && e.key === 'E') {
+    e.preventDefault();
+    const panel = getSessionPanel();
+    if (panel) {
+      panel.toggle();
+      contentLogger.debug('Session panel toggled via keyboard shortcut');
+    }
+  }
+
+  // Ctrl+Shift+C - Quick capture to session
+  if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+    e.preventDefault();
+    try {
+      chrome.runtime.sendMessage({
+        type: 'quick_capture_to_session'
+      });
+      contentLogger.debug('Quick capture triggered via keyboard shortcut');
+    } catch (error) {
+      contentLogger.error('Failed to send quick capture message', { error: error.message });
+    }
+  }
+
+  // Ctrl+Shift+X - Export active session
+  if (e.ctrlKey && e.shiftKey && e.key === 'X') {
+    e.preventDefault();
+    try {
+      chrome.runtime.sendMessage({
+        type: 'export_active_session'
+      });
+      contentLogger.debug('Export session triggered via keyboard shortcut');
+    } catch (error) {
+      contentLogger.error('Failed to send export message', { error: error.message });
+    }
+  }
+});

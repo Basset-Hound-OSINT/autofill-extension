@@ -124,6 +124,16 @@ try {
   console.error('[Basset Hound] Failed to load agent modules:', e.message);
 }
 
+try {
+  console.log('[Basset Hound] Importing Phase 14 evidence modules...');
+  importScripts('utils/evidence/chain-of-custody.js');
+  importScripts('utils/evidence/evidence-capture.js');
+  importScripts('utils/evidence/session-manager.js');
+  console.log('[Basset Hound] Phase 14 evidence modules loaded successfully');
+} catch (e) {
+  console.error('[Basset Hound] Failed to load Phase 14 evidence modules:', e.message);
+}
+
 console.log('[Basset Hound] All imports completed, initializing...');
 
 // Initialize logger for background script
@@ -913,7 +923,17 @@ const commandHandlers = {
   verify_data: handleVerifyData,
   capture_provenance: handleCaptureProvenance,
   start_element_picker: handleStartElementPicker,
-  ingest_data: handleIngestData
+  ingest_data: handleIngestData,
+  // Phase 14 Evidence Session Management Commands
+  start_evidence_session: handleStartEvidenceSession,
+  get_evidence_session: handleGetEvidenceSession,
+  add_to_session: handleAddToSession,
+  close_evidence_session: handleCloseEvidenceSession,
+  list_evidence_sessions: handleListEvidenceSessions,
+  export_evidence_session: handleExportEvidenceSession,
+  toggle_session_panel: handleToggleSessionPanel,
+  capture_page_forensics: handleCapturePageForensics,
+  capture_browser_snapshot: handleCaptureBrowserSnapshot
 };
 
 // =============================================================================
@@ -8468,6 +8488,638 @@ async function handleIngestData(params = {}) {
   } catch (error) {
     logger.error('Failed to ingest OSINT data', { error: error.message });
     throw new Error(`Failed to ingest OSINT data: ${error.message}`);
+  }
+}
+
+// =============================================================================
+// Phase 14 Evidence Session Management Command Handlers
+// =============================================================================
+
+/**
+ * Start a new evidence session
+ * Phase 14: Multi-page evidence collection with chain of custody
+ * @param {Object} params - Session parameters
+ * @param {string} params.name - Session name
+ * @param {string} params.caseId - Case ID
+ * @param {string} params.investigator - Investigator ID/name
+ * @param {string} params.description - Session description
+ * @param {Array<string>} params.tags - Session tags
+ * @param {string} params.classification - Data classification level
+ * @param {number} params.sizeLimitBytes - Session size limit
+ * @returns {Promise<Object>} Created session result
+ */
+async function handleStartEvidenceSession(params = {}) {
+  const {
+    name = 'New Evidence Session',
+    caseId = null,
+    investigator = null,
+    description = '',
+    tags = [],
+    classification = 'unclassified',
+    sizeLimitBytes = null
+  } = params;
+
+  logger.info('Starting evidence session', { name, caseId, investigator });
+
+  try {
+    // Get session manager instance
+    const sessionManager = typeof getSessionManager !== 'undefined' ? getSessionManager() : null;
+
+    if (!sessionManager) {
+      throw new Error('SessionManager not available. Ensure Phase 14 evidence modules are loaded.');
+    }
+
+    // Create session with metadata
+    const result = await sessionManager.createSession(name, {
+      caseId,
+      investigator,
+      description,
+      tags,
+      classification,
+      sizeLimitBytes
+    });
+
+    // Log to audit
+    if (typeof auditLogger !== 'undefined') {
+      auditLogger.log('evidence_session_started', {
+        sessionId: result.sessionId,
+        name,
+        caseId,
+        investigator
+      }, 'info');
+    }
+
+    return {
+      success: result.success,
+      command: 'start_evidence_session',
+      session: {
+        id: result.sessionId,
+        name: result.name,
+        caseId: result.caseId,
+        status: result.status,
+        createdAt: result.timestamp
+      },
+      timestamp: Date.now()
+    };
+  } catch (error) {
+    logger.error('Failed to start evidence session', { error: error.message });
+    throw new Error(`Failed to start evidence session: ${error.message}`);
+  }
+}
+
+/**
+ * Get evidence session details
+ * Phase 14: Retrieve session information
+ * @param {Object} params - Query parameters
+ * @param {string} params.sessionId - Session ID (optional, gets active if not provided)
+ * @returns {Promise<Object>} Session details
+ */
+async function handleGetEvidenceSession(params = {}) {
+  const { sessionId = null } = params;
+
+  logger.info('Getting evidence session', { sessionId });
+
+  try {
+    // Get session manager instance
+    const sessionManager = typeof getSessionManager !== 'undefined' ? getSessionManager() : null;
+
+    if (!sessionManager) {
+      throw new Error('SessionManager not available. Ensure Phase 14 evidence modules are loaded.');
+    }
+
+    let session;
+    if (sessionId) {
+      session = await sessionManager.getSession(sessionId);
+    } else {
+      session = await sessionManager.getActiveSession();
+    }
+
+    if (!session) {
+      return {
+        success: false,
+        command: 'get_evidence_session',
+        error: sessionId ? 'Session not found' : 'No active session',
+        timestamp: Date.now()
+      };
+    }
+
+    return {
+      success: true,
+      command: 'get_evidence_session',
+      session: {
+        id: session.id,
+        name: session.name,
+        caseId: session.caseId,
+        status: session.status,
+        metadata: session.metadata,
+        statistics: session.statistics,
+        createdAt: session.createdAt,
+        modifiedAt: session.modifiedAt,
+        closedAt: session.closedAt,
+        sizeBytes: session.currentSizeBytes,
+        evidenceCount: session.statistics.totalEvidence
+      },
+      isActive: session.id === sessionManager.activeSessionId,
+      timestamp: Date.now()
+    };
+  } catch (error) {
+    logger.error('Failed to get evidence session', { error: error.message });
+    throw new Error(`Failed to get evidence session: ${error.message}`);
+  }
+}
+
+/**
+ * Add evidence to session
+ * Phase 14: Add evidence item to active or specified session
+ * @param {Object} params - Add parameters
+ * @param {string} params.sessionId - Session ID (optional, uses active session)
+ * @param {Object} params.evidence - Evidence item to add
+ * @returns {Promise<Object>} Add result
+ */
+async function handleAddToSession(params = {}) {
+  const { sessionId = null, evidence = null } = params;
+
+  logger.info('Adding evidence to session', { sessionId, evidenceType: evidence?.type });
+
+  if (!evidence) {
+    throw new Error('evidence parameter is required');
+  }
+
+  try {
+    // Get session manager instance
+    const sessionManager = typeof getSessionManager !== 'undefined' ? getSessionManager() : null;
+
+    if (!sessionManager) {
+      throw new Error('SessionManager not available. Ensure Phase 14 evidence modules are loaded.');
+    }
+
+    // Add evidence to session
+    const result = await sessionManager.addEvidence(sessionId, evidence);
+
+    // Log to audit
+    if (typeof auditLogger !== 'undefined' && result.success) {
+      auditLogger.log('evidence_added_to_session', {
+        sessionId: result.sessionId || sessionId,
+        evidenceId: result.evidenceId,
+        evidenceType: evidence.type,
+        sequenceNumber: result.sequenceNumber
+      }, 'info');
+    }
+
+    return {
+      success: result.success,
+      command: 'add_to_session',
+      evidenceId: result.evidenceId,
+      sessionId: result.sessionId,
+      sequenceNumber: result.sequenceNumber,
+      currentSize: result.currentSize,
+      error: result.error || null,
+      timestamp: Date.now()
+    };
+  } catch (error) {
+    logger.error('Failed to add evidence to session', { error: error.message });
+    throw new Error(`Failed to add evidence to session: ${error.message}`);
+  }
+}
+
+/**
+ * Close evidence session
+ * Phase 14: Finalize and optionally export session
+ * @param {Object} params - Close parameters
+ * @param {string} params.sessionId - Session ID to close
+ * @param {string} params.summary - Session summary
+ * @param {Object} params.conclusions - Session conclusions
+ * @param {boolean} params.export - Whether to export on close
+ * @param {string} params.exportFormat - Export format ('json' or 'pdf')
+ * @param {boolean} params.includeData - Include evidence data in export
+ * @returns {Promise<Object>} Close result with optional export
+ */
+async function handleCloseEvidenceSession(params = {}) {
+  const {
+    sessionId = null,
+    summary = null,
+    conclusions = null,
+    export: shouldExport = false,
+    exportFormat = 'json',
+    includeData = true
+  } = params;
+
+  logger.info('Closing evidence session', { sessionId, export: shouldExport });
+
+  if (!sessionId) {
+    throw new Error('sessionId is required');
+  }
+
+  try {
+    // Get session manager instance
+    const sessionManager = typeof getSessionManager !== 'undefined' ? getSessionManager() : null;
+
+    if (!sessionManager) {
+      throw new Error('SessionManager not available. Ensure Phase 14 evidence modules are loaded.');
+    }
+
+    // Close the session
+    const closeResult = await sessionManager.closeSession(sessionId, {
+      summary,
+      conclusions
+    });
+
+    if (!closeResult.success) {
+      return {
+        success: false,
+        command: 'close_evidence_session',
+        error: closeResult.error,
+        timestamp: Date.now()
+      };
+    }
+
+    // Export if requested
+    let exportResult = null;
+    if (shouldExport) {
+      exportResult = await sessionManager.exportSession(sessionId, {
+        format: exportFormat,
+        includeData
+      });
+    }
+
+    // Log to audit
+    if (typeof auditLogger !== 'undefined') {
+      auditLogger.log('evidence_session_closed', {
+        sessionId,
+        exported: shouldExport,
+        evidenceCount: closeResult.statistics?.totalEvidence
+      }, 'info');
+    }
+
+    return {
+      success: true,
+      command: 'close_evidence_session',
+      sessionId: closeResult.sessionId,
+      status: closeResult.status,
+      closedAt: closeResult.closedAt,
+      statistics: closeResult.statistics,
+      export: exportResult ? {
+        success: exportResult.success,
+        format: exportFormat,
+        filename: exportResult.filename,
+        exportHash: exportResult.exportHash,
+        error: exportResult.error || null
+      } : null,
+      timestamp: Date.now()
+    };
+  } catch (error) {
+    logger.error('Failed to close evidence session', { error: error.message });
+    throw new Error(`Failed to close evidence session: ${error.message}`);
+  }
+}
+
+/**
+ * List evidence sessions
+ * Phase 14: Query and list sessions with filters
+ * @param {Object} params - Filter parameters
+ * @param {string} params.status - Filter by status ('active', 'paused', 'closed', 'exported')
+ * @param {string} params.caseId - Filter by case ID
+ * @param {string} params.investigator - Filter by investigator
+ * @param {number} params.since - Filter by creation time (after timestamp)
+ * @param {number} params.until - Filter by creation time (before timestamp)
+ * @param {number} params.limit - Max sessions to return
+ * @param {number} params.offset - Sessions to skip (pagination)
+ * @returns {Promise<Object>} Sessions list with pagination
+ */
+async function handleListEvidenceSessions(params = {}) {
+  const {
+    status = null,
+    caseId = null,
+    investigator = null,
+    since = 0,
+    until = Date.now(),
+    limit = 50,
+    offset = 0
+  } = params;
+
+  logger.info('Listing evidence sessions', { status, caseId, limit, offset });
+
+  try {
+    // Get session manager instance
+    const sessionManager = typeof getSessionManager !== 'undefined' ? getSessionManager() : null;
+
+    if (!sessionManager) {
+      throw new Error('SessionManager not available. Ensure Phase 14 evidence modules are loaded.');
+    }
+
+    // List sessions with filters
+    const result = await sessionManager.listSessions({
+      status,
+      caseId,
+      investigator,
+      since,
+      until,
+      limit,
+      offset
+    });
+
+    return {
+      success: result.success,
+      command: 'list_evidence_sessions',
+      sessions: result.sessions,
+      pagination: result.pagination,
+      activeSessionId: result.activeSessionId,
+      timestamp: Date.now()
+    };
+  } catch (error) {
+    logger.error('Failed to list evidence sessions', { error: error.message });
+    throw new Error(`Failed to list evidence sessions: ${error.message}`);
+  }
+}
+
+/**
+ * Export evidence session
+ * Phase 14: Export session to JSON or PDF format
+ * @param {Object} params - Export parameters
+ * @param {string} params.sessionId - Session ID to export
+ * @param {string} params.format - Export format ('json' or 'pdf')
+ * @param {boolean} params.includeData - Include evidence data
+ * @param {boolean} params.includeCustody - Include chain of custody records
+ * @returns {Promise<Object>} Export result with bundle
+ */
+async function handleExportEvidenceSession(params = {}) {
+  const {
+    sessionId = null,
+    format = 'json',
+    includeData = true,
+    includeCustody = true
+  } = params;
+
+  logger.info('Exporting evidence session', { sessionId, format });
+
+  if (!sessionId) {
+    throw new Error('sessionId is required');
+  }
+
+  try {
+    // Get session manager instance
+    const sessionManager = typeof getSessionManager !== 'undefined' ? getSessionManager() : null;
+
+    if (!sessionManager) {
+      throw new Error('SessionManager not available. Ensure Phase 14 evidence modules are loaded.');
+    }
+
+    // Export session
+    const result = await sessionManager.exportSession(sessionId, {
+      format,
+      includeData,
+      includeChainOfCustody: includeCustody
+    });
+
+    if (!result.success) {
+      return {
+        success: false,
+        command: 'export_evidence_session',
+        error: result.error,
+        timestamp: Date.now()
+      };
+    }
+
+    // Log to audit
+    if (typeof auditLogger !== 'undefined') {
+      auditLogger.log('evidence_session_exported', {
+        sessionId,
+        format,
+        exportHash: result.exportHash
+      }, 'info');
+    }
+
+    return {
+      success: true,
+      command: 'export_evidence_session',
+      sessionId: result.sessionId,
+      format,
+      bundle: result.bundle || result.reportStructure,
+      exportHash: result.exportHash,
+      filename: result.filename,
+      mimeType: result.mimeType,
+      timestamp: Date.now()
+    };
+  } catch (error) {
+    logger.error('Failed to export evidence session', { error: error.message });
+    throw new Error(`Failed to export evidence session: ${error.message}`);
+  }
+}
+
+/**
+ * Toggle session panel in content script
+ * Phase 14: Show/hide session management panel overlay
+ * @param {Object} params - Toggle parameters (currently unused)
+ * @returns {Promise<Object>} Toggle result
+ */
+async function handleToggleSessionPanel(params = {}) {
+  logger.info('Toggling session panel');
+
+  try {
+    // Send message to active tab's content script
+    const result = await sendMessageToActiveTab({
+      action: 'toggle_session_panel',
+      params: {}
+    });
+
+    return {
+      success: true,
+      command: 'toggle_session_panel',
+      panelState: result?.panelState || 'unknown',
+      timestamp: Date.now()
+    };
+  } catch (error) {
+    logger.error('Failed to toggle session panel', { error: error.message });
+    // Don't throw - panel might not be implemented yet
+    return {
+      success: false,
+      command: 'toggle_session_panel',
+      error: error.message,
+      note: 'Session panel may not be implemented in content script yet',
+      timestamp: Date.now()
+    };
+  }
+}
+
+/**
+ * Capture page forensics data
+ * Phase 14: Capture detailed forensic data from current page
+ * @param {Object} params - Capture parameters
+ * @param {boolean} params.includeDOM - Include DOM snapshot
+ * @param {boolean} params.includeStorage - Include local/session storage
+ * @param {boolean} params.includeNetwork - Include network activity
+ * @param {boolean} params.includeCookies - Include cookies
+ * @returns {Promise<Object>} Forensics data
+ */
+async function handleCapturePageForensics(params = {}) {
+  const {
+    includeDOM = true,
+    includeStorage = true,
+    includeNetwork = true,
+    includeCookies = true
+  } = params;
+
+  logger.info('Capturing page forensics', { includeDOM, includeStorage, includeNetwork, includeCookies });
+
+  try {
+    // Send message to active tab's content script to capture page-level forensics
+    const result = await sendMessageToActiveTab({
+      action: 'capture_page_forensics',
+      params: {
+        includeDOM,
+        includeStorage,
+        includeNetwork,
+        includeCookies
+      }
+    });
+
+    // Log to audit
+    if (typeof auditLogger !== 'undefined') {
+      auditLogger.log('page_forensics_captured', {
+        url: result?.url,
+        dataTypes: { includeDOM, includeStorage, includeNetwork, includeCookies }
+      }, 'info');
+    }
+
+    return {
+      success: true,
+      command: 'capture_page_forensics',
+      forensics: result,
+      timestamp: Date.now()
+    };
+  } catch (error) {
+    logger.error('Failed to capture page forensics', { error: error.message });
+    // Don't throw - forensics module might not be implemented yet
+    return {
+      success: false,
+      command: 'capture_page_forensics',
+      error: error.message,
+      note: 'Page forensics capture may not be implemented in content script yet',
+      timestamp: Date.now()
+    };
+  }
+}
+
+/**
+ * Capture browser snapshot
+ * Phase 14: Capture browser-level snapshot (tabs, extensions, etc.)
+ * @param {Object} params - Capture parameters
+ * @param {boolean} params.includeTabs - Include all open tabs
+ * @param {boolean} params.includeExtensions - Include extension info
+ * @param {boolean} params.includeBookmarks - Include bookmarks
+ * @param {boolean} params.includeHistory - Include recent history
+ * @returns {Promise<Object>} Browser snapshot data
+ */
+async function handleCaptureBrowserSnapshot(params = {}) {
+  const {
+    includeTabs = true,
+    includeExtensions = false,
+    includeBookmarks = false,
+    includeHistory = false
+  } = params;
+
+  logger.info('Capturing browser snapshot', { includeTabs, includeExtensions, includeBookmarks, includeHistory });
+
+  try {
+    const snapshot = {
+      captureTime: Date.now(),
+      captureTimeISO: new Date().toISOString(),
+      browser: 'chrome',
+      tabs: [],
+      extensions: [],
+      bookmarks: null,
+      history: null
+    };
+
+    // Capture tabs if requested
+    if (includeTabs) {
+      const tabs = await chrome.tabs.query({});
+      snapshot.tabs = tabs.map(tab => ({
+        id: tab.id,
+        url: tab.url,
+        title: tab.title,
+        active: tab.active,
+        windowId: tab.windowId,
+        index: tab.index,
+        pinned: tab.pinned,
+        status: tab.status
+      }));
+    }
+
+    // Capture extensions if requested (requires management permission)
+    if (includeExtensions) {
+      try {
+        if (chrome.management && chrome.management.getAll) {
+          const extensions = await chrome.management.getAll();
+          snapshot.extensions = extensions.map(ext => ({
+            id: ext.id,
+            name: ext.name,
+            version: ext.version,
+            enabled: ext.enabled,
+            type: ext.type
+          }));
+        }
+      } catch (e) {
+        logger.warn('Could not capture extensions', { error: e.message });
+        snapshot.extensions = { error: 'Permission denied or not available' };
+      }
+    }
+
+    // Capture bookmarks if requested (requires bookmarks permission)
+    if (includeBookmarks) {
+      try {
+        if (chrome.bookmarks && chrome.bookmarks.getTree) {
+          const bookmarkTree = await chrome.bookmarks.getTree();
+          snapshot.bookmarks = bookmarkTree;
+        }
+      } catch (e) {
+        logger.warn('Could not capture bookmarks', { error: e.message });
+        snapshot.bookmarks = { error: 'Permission denied or not available' };
+      }
+    }
+
+    // Capture history if requested (requires history permission)
+    if (includeHistory) {
+      try {
+        if (chrome.history && chrome.history.search) {
+          const historyItems = await chrome.history.search({
+            text: '',
+            maxResults: 100,
+            startTime: Date.now() - (24 * 60 * 60 * 1000) // Last 24 hours
+          });
+          snapshot.history = historyItems.map(item => ({
+            id: item.id,
+            url: item.url,
+            title: item.title,
+            lastVisitTime: item.lastVisitTime,
+            visitCount: item.visitCount
+          }));
+        }
+      } catch (e) {
+        logger.warn('Could not capture history', { error: e.message });
+        snapshot.history = { error: 'Permission denied or not available' };
+      }
+    }
+
+    // Log to audit
+    if (typeof auditLogger !== 'undefined') {
+      auditLogger.log('browser_snapshot_captured', {
+        tabCount: snapshot.tabs.length,
+        includeExtensions,
+        includeBookmarks,
+        includeHistory
+      }, 'info');
+    }
+
+    return {
+      success: true,
+      command: 'capture_browser_snapshot',
+      snapshot,
+      timestamp: Date.now()
+    };
+  } catch (error) {
+    logger.error('Failed to capture browser snapshot', { error: error.message });
+    throw new Error(`Failed to capture browser snapshot: ${error.message}`);
   }
 }
 

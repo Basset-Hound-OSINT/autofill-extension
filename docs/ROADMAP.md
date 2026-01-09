@@ -1,7 +1,7 @@
 # Basset Hound Browser Automation Extension - Development Roadmap
 
-> **Current Version:** v2.18.0 (January 9, 2026)
-> **Status:** Production Certified
+> **Current Version:** v2.19.0 (January 9, 2026)
+> **Status:** Production Certified - Phase 14 Complete + Forensics Modules
 > **Previous Phases:** See [ROADMAP-ARCHIVE-V1.md](ROADMAP-ARCHIVE-V1.md) for Phases 1-13
 
 ---
@@ -11,18 +11,25 @@
 ### What's Built (Phases 1-13)
 - ✅ Core browser automation (navigate, click, fill, screenshot)
 - ✅ Network monitoring, request interception, HAR export
-- ✅ OSINT detection (15+ patterns: email, phone, crypto, IP, domains)
+- ✅ OSINT pattern detection (15+ patterns: email, phone, crypto, IP, domains)
 - ✅ Ingest panel UI with element picker
 - ✅ Sock puppet integration with TOTP/2FA
 - ✅ Evidence capture with chain of custody
 - ✅ Annotation tools (highlight, redaction, text)
 - ✅ Investigation context manager
 - ✅ Smart form filling from entities
-- ✅ Data verification (blockchain, email/domain, phone)
+- ✅ Format validation (client-side pattern checks)
 - ✅ MCP Server (76+ tools for AI agents)
 
+**Note:** Phase 13 verification modules (blockchain/email/phone lookups) moved to basset-hound backend. See [PROJECT-SCOPE.md](PROJECT-SCOPE.md).
+
 ### Current Focus
-Building enhanced workflows and UI improvements for investigators.
+**Phase 14 Complete:** Evidence session management for multi-page investigations
+**Forensics Complete:** Page forensics + browser snapshot modules
+**Next:** Integration handlers, workflow automation, advanced forensics
+
+### Project Scope
+This extension is a **browser automation API and MCP server**, NOT an OSINT analysis toolkit. We push Chrome extension limits for **browser forensics** (data extraction), while external data **verification** (blockchain lookups, DNS queries, breach checking) belongs in basset-hound backend. See [PROJECT-SCOPE.md](PROJECT-SCOPE.md) for details.
 
 ---
 

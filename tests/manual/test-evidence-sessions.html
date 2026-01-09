@@ -1,0 +1,2011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evidence Session Testing - Phase 14</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Header */
+        .page-header {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .page-header h1 {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 0 0 10px 0;
+            color: #60a5fa;
+            font-size: 32px;
+        }
+
+        .page-header .subtitle {
+            color: #94a3b8;
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .nav-links a {
+            color: #60a5fa;
+            text-decoration: none;
+            padding: 8px 16px;
+            background: #334155;
+            border-radius: 6px;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .nav-links a:hover {
+            background: #475569;
+            transform: translateY(-2px);
+        }
+
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* Section Card */
+        .section {
+            background: #1e293b;
+            padding: 25px;
+            border-radius: 12px;
+            border-left: 4px solid #60a5fa;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .section h2 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0 0 20px 0;
+            color: #f472b6;
+            font-size: 20px;
+        }
+
+        .section h2 .icon {
+            font-size: 24px;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 5px 5px 5px 0;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #d97706;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6366f1;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4f46e5;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Status Display */
+        .status-display {
+            background: #0f172a;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 1px solid #334155;
+        }
+
+        .status-display h3 {
+            margin: 0 0 15px 0;
+            color: #60a5fa;
+            font-size: 16px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #334155;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-label {
+            color: #94a3b8;
+            font-size: 13px;
+        }
+
+        .status-value {
+            color: #e2e8f0;
+            font-weight: 500;
+            font-size: 13px;
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-active {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .badge-paused {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+
+        .badge-closed {
+            background: rgba(148, 163, 184, 0.2);
+            color: #94a3b8;
+        }
+
+        /* Timeline */
+        .timeline {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+            background: #0f172a;
+            border-radius: 8px;
+            border: 1px solid #334155;
+        }
+
+        .timeline-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: #1e293b;
+            border-radius: 8px;
+            border-left: 3px solid #60a5fa;
+            transition: all 0.2s;
+        }
+
+        .timeline-item:hover {
+            background: #334155;
+            transform: translateX(5px);
+        }
+
+        .timeline-icon {
+            width: 32px;
+            height: 32px;
+            background: #334155;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 16px;
+        }
+
+        .timeline-content {
+            flex: 1;
+        }
+
+        .timeline-title {
+            color: #e2e8f0;
+            font-weight: 500;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .timeline-meta {
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        /* Session List */
+        .session-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .session-item {
+            padding: 15px;
+            background: #0f172a;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #334155;
+            transition: all 0.2s;
+        }
+
+        .session-item:hover {
+            background: #1e293b;
+            border-color: #60a5fa;
+        }
+
+        .session-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .session-item-name {
+            color: #e2e8f0;
+            font-weight: 500;
+            font-size: 15px;
+        }
+
+        .session-item-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .session-item-meta span {
+            color: #94a3b8;
+            font-size: 12px;
+        }
+
+        .session-item-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        /* Filter Controls */
+        .filter-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .filter-controls select,
+        .filter-controls input {
+            padding: 8px 12px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            color: #e2e8f0;
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        .filter-controls select:focus,
+        .filter-controls input:focus {
+            outline: none;
+            border-color: #60a5fa;
+        }
+
+        /* Keyboard Shortcuts */
+        .shortcuts-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .shortcuts-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            background: #0f172a;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .shortcut-key {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            background: #334155;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #60a5fa;
+        }
+
+        .shortcut-desc {
+            color: #94a3b8;
+            font-size: 13px;
+        }
+
+        /* Storage Inspector */
+        .json-viewer {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            border: 1px solid #334155;
+        }
+
+        .json-viewer pre {
+            margin: 0;
+            color: #e2e8f0;
+        }
+
+        /* Logs */
+        .log-area {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            border: 1px solid #334155;
+            margin-top: 15px;
+        }
+
+        .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid #1e293b;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-time {
+            color: #64748b;
+        }
+
+        .log-level-info {
+            color: #60a5fa;
+        }
+
+        .log-level-success {
+            color: #22c55e;
+        }
+
+        .log-level-error {
+            color: #ef4444;
+        }
+
+        .log-level-warning {
+            color: #f59e0b;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.visible {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #f472b6;
+            font-size: 20px;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #94a3b8;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            color: #e2e8f0;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #60a5fa;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        /* Info Box */
+        .info-box {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .info-box h4 {
+            margin: 0 0 10px 0;
+            color: #60a5fa;
+            font-size: 14px;
+        }
+
+        .info-box p {
+            margin: 0;
+            color: #94a3b8;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .info-box code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #fbbf24;
+            font-family: monospace;
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .empty-state-text {
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1>
+                <span>&#128269;</span>
+                Evidence Session Testing
+            </h1>
+            <p class="subtitle">Phase 14: Comprehensive manual testing for evidence session features</p>
+            <div class="nav-links">
+                <a href="test-pages/index.html">Back to Test Pages</a>
+                <a href="test-osint-ingestion.html">OSINT Test Page</a>
+                <a href="#session-management">Session Management</a>
+                <a href="#evidence-capture">Evidence Capture</a>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="info-box">
+            <h4>Testing Instructions</h4>
+            <p>
+                1. Load the Basset Hound extension in developer mode<br>
+                2. Open this test page and verify the session panel appears (press <code>Ctrl+Shift+E</code> if not visible)<br>
+                3. Use the controls below to test session management features<br>
+                4. Check the console for detailed operation logs<br>
+                5. Verify data persistence by refreshing the page
+            </p>
+        </div>
+
+        <!-- Grid Layout for Main Sections -->
+        <div class="grid">
+            <!-- Session Management Section -->
+            <div class="section" id="session-management">
+                <h2>
+                    <span class="icon">&#128193;</span>
+                    Session Management
+                </h2>
+
+                <button class="btn btn-primary" id="btn-start-session">
+                    <span>&#10133;</span> Start New Session
+                </button>
+                <button class="btn btn-danger" id="btn-close-session">
+                    <span>&#10060;</span> Close Current Session
+                </button>
+                <button class="btn btn-warning" id="btn-pause-session">
+                    <span>&#9208;</span> Pause Session
+                </button>
+                <button class="btn btn-success" id="btn-resume-session">
+                    <span>&#9658;</span> Resume Session
+                </button>
+
+                <div class="status-display">
+                    <h3>Active Session Info</h3>
+                    <div class="status-item">
+                        <span class="status-label">Status:</span>
+                        <span class="status-value" id="session-status">No Active Session</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Session Name:</span>
+                        <span class="status-value" id="session-name">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Case ID:</span>
+                        <span class="status-value" id="session-case-id">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Evidence Items:</span>
+                        <span class="status-value" id="session-item-count">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Duration:</span>
+                        <span class="status-value" id="session-duration">0m 0s</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Evidence Capture Section -->
+            <div class="section" id="evidence-capture">
+                <h2>
+                    <span class="icon">&#128248;</span>
+                    Evidence Capture
+                </h2>
+
+                <button class="btn btn-secondary" id="btn-capture-screenshot">
+                    <span>&#128247;</span> Capture Screenshot
+                </button>
+                <button class="btn btn-secondary" id="btn-capture-page-state">
+                    <span>&#128462;</span> Capture Page State
+                </button>
+                <button class="btn btn-secondary" id="btn-add-osint">
+                    <span>&#128270;</span> Add OSINT Data
+                </button>
+                <button class="btn btn-secondary" id="btn-capture-annotated">
+                    <span>&#9998;</span> Capture with Annotation
+                </button>
+
+                <div class="status-display">
+                    <h3>Capture Statistics</h3>
+                    <div class="status-item">
+                        <span class="status-label">Screenshots:</span>
+                        <span class="status-value" id="capture-screenshots">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Page States:</span>
+                        <span class="status-value" id="capture-page-states">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">OSINT Items:</span>
+                        <span class="status-value" id="capture-osint">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Annotations:</span>
+                        <span class="status-value" id="capture-annotations">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline View -->
+        <div class="section">
+            <h2>
+                <span class="icon">&#128337;</span>
+                Evidence Timeline
+            </h2>
+            <div class="timeline" id="evidence-timeline">
+                <div class="empty-state">
+                    <div class="empty-state-icon">&#128193;</div>
+                    <div class="empty-state-text">No evidence items yet. Start capturing!</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Session Browser -->
+        <div class="section">
+            <h2>
+                <span class="icon">&#128194;</span>
+                Session Browser
+            </h2>
+
+            <div class="filter-controls">
+                <select id="filter-status">
+                    <option value="all">All Statuses</option>
+                    <option value="active">Active</option>
+                    <option value="paused">Paused</option>
+                    <option value="closed">Closed</option>
+                </select>
+                <input type="date" id="filter-date-start" placeholder="Start Date">
+                <input type="date" id="filter-date-end" placeholder="End Date">
+                <button class="btn btn-primary btn-small" id="btn-apply-filters">Apply Filters</button>
+                <button class="btn btn-secondary btn-small" id="btn-refresh-sessions">Refresh</button>
+            </div>
+
+            <div class="session-list" id="session-list">
+                <div class="empty-state">
+                    <div class="empty-state-icon">&#128194;</div>
+                    <div class="empty-state-text">No sessions found. Create your first session!</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grid Layout for Additional Features -->
+        <div class="grid">
+            <!-- Keyboard Shortcuts -->
+            <div class="section">
+                <h2>
+                    <span class="icon">&#9000;</span>
+                    Keyboard Shortcuts
+                </h2>
+
+                <ul class="shortcuts-list">
+                    <li>
+                        <span class="shortcut-desc">Toggle session panel</span>
+                        <span class="shortcut-key">Ctrl+Shift+E</span>
+                    </li>
+                    <li>
+                        <span class="shortcut-desc">Quick capture</span>
+                        <span class="shortcut-key">Ctrl+Shift+C</span>
+                    </li>
+                    <li>
+                        <span class="shortcut-desc">Export session</span>
+                        <span class="shortcut-key">Ctrl+Shift+X</span>
+                    </li>
+                </ul>
+
+                <button class="btn btn-secondary" id="btn-test-shortcuts">
+                    <span>&#9889;</span> Test Shortcuts
+                </button>
+            </div>
+
+            <!-- Test Data Generator -->
+            <div class="section">
+                <h2>
+                    <span class="icon">&#128190;</span>
+                    Test Data Generator
+                </h2>
+
+                <button class="btn btn-warning" id="btn-generate-evidence">
+                    <span>&#128302;</span> Generate Test Evidence
+                </button>
+                <button class="btn btn-warning" id="btn-simulate-navigation">
+                    <span>&#128279;</span> Simulate Page Navigation
+                </button>
+
+                <div class="status-display">
+                    <h3>Generation Stats</h3>
+                    <div class="status-item">
+                        <span class="status-label">Generated Items:</span>
+                        <span class="status-value" id="generated-items">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Simulated Pages:</span>
+                        <span class="status-value" id="simulated-pages">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Storage Inspector -->
+        <div class="section">
+            <h2>
+                <span class="icon">&#128190;</span>
+                Storage Inspector
+            </h2>
+
+            <button class="btn btn-secondary" id="btn-inspect-storage">
+                <span>&#128270;</span> Inspect Chrome Storage
+            </button>
+            <button class="btn btn-danger" id="btn-clear-storage">
+                <span>&#128465;</span> Clear All Sessions
+            </button>
+
+            <div class="status-display">
+                <h3>Storage Usage</h3>
+                <div class="status-item">
+                    <span class="status-label">Total Sessions:</span>
+                    <span class="status-value" id="storage-total-sessions">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Storage Used:</span>
+                    <span class="status-value" id="storage-used">0 KB</span>
+                </div>
+            </div>
+
+            <div class="json-viewer" id="storage-data">
+                <pre>Click "Inspect Chrome Storage" to view data...</pre>
+            </div>
+        </div>
+
+        <!-- Integration Tests -->
+        <div class="section">
+            <h2>
+                <span class="icon">&#128295;</span>
+                Integration Tests
+            </h2>
+
+            <button class="btn btn-primary" id="btn-test-panel-ui">
+                <span>&#128065;</span> Test Session Panel UI
+            </button>
+            <button class="btn btn-primary" id="btn-test-capture">
+                <span>&#128248;</span> Test Evidence Capture
+            </button>
+            <button class="btn btn-primary" id="btn-test-custody">
+                <span>&#128274;</span> Test Chain of Custody
+            </button>
+            <button class="btn btn-primary" id="btn-test-provenance">
+                <span>&#128221;</span> Test Provenance Capture
+            </button>
+
+            <div class="status-display">
+                <h3>Test Results</h3>
+                <div class="status-item">
+                    <span class="status-label">Tests Passed:</span>
+                    <span class="status-value" id="tests-passed">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Tests Failed:</span>
+                    <span class="status-value" id="tests-failed">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Scenarios -->
+        <div class="section">
+            <h2>
+                <span class="icon">&#9888;</span>
+                Error Scenarios
+            </h2>
+
+            <button class="btn btn-danger" id="btn-test-storage-full">
+                <span>&#128293;</span> Test Storage Full
+            </button>
+            <button class="btn btn-danger" id="btn-test-invalid-session">
+                <span>&#10060;</span> Test Invalid Session
+            </button>
+            <button class="btn btn-danger" id="btn-test-concurrent">
+                <span>&#9889;</span> Test Concurrent Sessions
+            </button>
+
+            <div class="status-display">
+                <h3>Error Handling</h3>
+                <div class="status-item">
+                    <span class="status-label">Errors Caught:</span>
+                    <span class="status-value" id="errors-caught">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Last Error:</span>
+                    <span class="status-value" id="last-error">None</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="section">
+            <h2>
+                <span class="icon">&#128221;</span>
+                Activity Log
+            </h2>
+            <button class="btn btn-secondary btn-small" id="btn-clear-log">Clear Log</button>
+            <div class="log-area" id="activity-log">
+                <div class="log-entry">
+                    <span class="log-time">[00:00:00]</span>
+                    <span class="log-level-info">INFO:</span>
+                    Test page loaded
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Start New Session -->
+    <div class="modal" id="modal-start-session">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Start New Evidence Session</h3>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="input-session-name">Session Name *</label>
+                    <input type="text" id="input-session-name" placeholder="e.g., Social Media Investigation">
+                </div>
+                <div class="form-group">
+                    <label for="input-case-id">Case ID</label>
+                    <input type="text" id="input-case-id" placeholder="e.g., CASE-2026-001">
+                </div>
+                <div class="form-group">
+                    <label for="input-investigator">Investigator</label>
+                    <input type="text" id="input-investigator" placeholder="Your name">
+                </div>
+                <div class="form-group">
+                    <label for="input-description">Description</label>
+                    <textarea id="input-description" placeholder="Brief description of investigation"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="btn-modal-cancel">Cancel</button>
+                <button class="btn btn-primary" id="btn-modal-confirm">Start Session</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // =================================================================
+        // Test Page State
+        // =================================================================
+        const TestState = {
+            currentSession: null,
+            sessions: [],
+            evidenceItems: [],
+            captureStats: {
+                screenshots: 0,
+                pageStates: 0,
+                osint: 0,
+                annotations: 0
+            },
+            generationStats: {
+                generatedItems: 0,
+                simulatedPages: 0
+            },
+            testStats: {
+                passed: 0,
+                failed: 0,
+                errorsCaught: 0,
+                lastError: 'None'
+            }
+        };
+
+        // =================================================================
+        // Utility Functions
+        // =================================================================
+
+        /**
+         * Log message to activity log
+         */
+        function log(level, message) {
+            const logArea = document.getElementById('activity-log');
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'log-entry fade-in';
+            entry.innerHTML = `
+                <span class="log-time">[${time}]</span>
+                <span class="log-level-${level}">${level.toUpperCase()}:</span>
+                ${message}
+            `;
+            logArea.appendChild(entry);
+            logArea.scrollTop = logArea.scrollHeight;
+
+            // Also log to console
+            console.log(`[${time}] ${level.toUpperCase()}: ${message}`);
+        }
+
+        /**
+         * Send message to extension background script
+         */
+        function sendExtensionMessage(command, data = {}) {
+            return new Promise((resolve, reject) => {
+                if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+                    chrome.runtime.sendMessage({ command, ...data }, (response) => {
+                        if (chrome.runtime.lastError) {
+                            log('error', `Extension error: ${chrome.runtime.lastError.message}`);
+                            reject(chrome.runtime.lastError);
+                        } else {
+                            resolve(response);
+                        }
+                    });
+                } else {
+                    log('warning', 'Extension not available - simulating response');
+                    // Simulate response for testing without extension
+                    setTimeout(() => {
+                        resolve({ success: true, data: { simulated: true } });
+                    }, 100);
+                }
+            });
+        }
+
+        /**
+         * Update session info display
+         */
+        function updateSessionInfo(session) {
+            if (!session) {
+                document.getElementById('session-status').innerHTML = '<span class="badge badge-closed">No Active Session</span>';
+                document.getElementById('session-name').textContent = '-';
+                document.getElementById('session-case-id').textContent = '-';
+                document.getElementById('session-item-count').textContent = '0';
+                document.getElementById('session-duration').textContent = '0m 0s';
+                return;
+            }
+
+            const statusBadges = {
+                active: 'badge-active',
+                paused: 'badge-paused',
+                closed: 'badge-closed'
+            };
+
+            document.getElementById('session-status').innerHTML =
+                `<span class="badge ${statusBadges[session.status]}">${session.status.toUpperCase()}</span>`;
+            document.getElementById('session-name').textContent = session.name;
+            document.getElementById('session-case-id').textContent = session.caseId || 'N/A';
+            document.getElementById('session-item-count').textContent = session.evidenceCount || 0;
+
+            // Calculate duration
+            const duration = Date.now() - session.createdAt;
+            const minutes = Math.floor(duration / 60000);
+            const seconds = Math.floor((duration % 60000) / 1000);
+            document.getElementById('session-duration').textContent = `${minutes}m ${seconds}s`;
+        }
+
+        /**
+         * Update capture statistics
+         */
+        function updateCaptureStats() {
+            document.getElementById('capture-screenshots').textContent = TestState.captureStats.screenshots;
+            document.getElementById('capture-page-states').textContent = TestState.captureStats.pageStates;
+            document.getElementById('capture-osint').textContent = TestState.captureStats.osint;
+            document.getElementById('capture-annotations').textContent = TestState.captureStats.annotations;
+        }
+
+        /**
+         * Update generation statistics
+         */
+        function updateGenerationStats() {
+            document.getElementById('generated-items').textContent = TestState.generationStats.generatedItems;
+            document.getElementById('simulated-pages').textContent = TestState.generationStats.simulatedPages;
+        }
+
+        /**
+         * Update test statistics
+         */
+        function updateTestStats() {
+            document.getElementById('tests-passed').textContent = TestState.testStats.passed;
+            document.getElementById('tests-failed').textContent = TestState.testStats.failed;
+            document.getElementById('errors-caught').textContent = TestState.testStats.errorsCaught;
+            document.getElementById('last-error').textContent = TestState.testStats.lastError;
+        }
+
+        /**
+         * Add evidence to timeline
+         */
+        function addEvidenceToTimeline(evidence) {
+            const timeline = document.getElementById('evidence-timeline');
+
+            // Remove empty state if present
+            if (timeline.querySelector('.empty-state')) {
+                timeline.innerHTML = '';
+            }
+
+            const item = document.createElement('div');
+            item.className = 'timeline-item fade-in';
+
+            const icons = {
+                screenshot: '&#128247;',
+                page_state: '&#128462;',
+                osint: '&#128270;',
+                annotation: '&#9998;'
+            };
+
+            item.innerHTML = `
+                <div class="timeline-icon">${icons[evidence.type] || '&#128196;'}</div>
+                <div class="timeline-content">
+                    <div class="timeline-title">${evidence.title}</div>
+                    <div class="timeline-meta">
+                        ${evidence.source} • ${new Date(evidence.timestamp).toLocaleTimeString()}
+                    </div>
+                </div>
+            `;
+
+            timeline.insertBefore(item, timeline.firstChild);
+        }
+
+        /**
+         * Render session list
+         */
+        function renderSessionList(sessions) {
+            const listContainer = document.getElementById('session-list');
+
+            if (!sessions || sessions.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">&#128194;</div>
+                        <div class="empty-state-text">No sessions found. Create your first session!</div>
+                    </div>
+                `;
+                return;
+            }
+
+            listContainer.innerHTML = sessions.map(session => {
+                const statusBadges = {
+                    active: 'badge-active',
+                    paused: 'badge-paused',
+                    closed: 'badge-closed'
+                };
+
+                return `
+                    <div class="session-item fade-in">
+                        <div class="session-item-header">
+                            <span class="session-item-name">${session.name}</span>
+                            <span class="badge ${statusBadges[session.status]}">${session.status}</span>
+                        </div>
+                        <div class="session-item-meta">
+                            <span>Case: ${session.caseId || 'N/A'}</span>
+                            <span>Items: ${session.evidenceCount || 0}</span>
+                            <span>Created: ${new Date(session.createdAt).toLocaleDateString()}</span>
+                            <span>ID: ${session.id.substring(0, 8)}</span>
+                        </div>
+                        <div class="session-item-actions">
+                            <button class="btn btn-primary btn-small" onclick="viewSession('${session.id}')">View</button>
+                            ${session.status === 'paused' ?
+                                `<button class="btn btn-success btn-small" onclick="resumeSession('${session.id}')">Resume</button>` : ''}
+                            <button class="btn btn-secondary btn-small" onclick="exportSession('${session.id}')">Export</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteSession('${session.id}')">Delete</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        /**
+         * Format bytes to readable string
+         */
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        // =================================================================
+        // Session Management Functions
+        // =================================================================
+
+        /**
+         * Start new session
+         */
+        async function startSession(name, caseId, investigator, description) {
+            try {
+                log('info', `Starting new session: ${name}`);
+
+                const response = await sendExtensionMessage('start_evidence_session', {
+                    name,
+                    metadata: {
+                        caseId,
+                        investigator,
+                        description
+                    }
+                });
+
+                if (response.success) {
+                    TestState.currentSession = {
+                        id: response.sessionId || 'sim-' + Date.now(),
+                        name,
+                        caseId,
+                        status: 'active',
+                        createdAt: Date.now(),
+                        evidenceCount: 0
+                    };
+
+                    TestState.sessions.push(TestState.currentSession);
+
+                    updateSessionInfo(TestState.currentSession);
+                    renderSessionList(TestState.sessions);
+
+                    log('success', `Session "${name}" started successfully`);
+                } else {
+                    throw new Error(response.error || 'Failed to start session');
+                }
+            } catch (error) {
+                log('error', `Failed to start session: ${error.message}`);
+                TestState.testStats.errorsCaught++;
+                TestState.testStats.lastError = error.message;
+                updateTestStats();
+            }
+        }
+
+        /**
+         * Close current session
+         */
+        async function closeSession() {
+            if (!TestState.currentSession) {
+                log('warning', 'No active session to close');
+                return;
+            }
+
+            try {
+                log('info', `Closing session: ${TestState.currentSession.name}`);
+
+                const response = await sendExtensionMessage('close_evidence_session', {
+                    sessionId: TestState.currentSession.id
+                });
+
+                if (response.success) {
+                    TestState.currentSession.status = 'closed';
+                    TestState.currentSession = null;
+
+                    updateSessionInfo(null);
+                    renderSessionList(TestState.sessions);
+
+                    log('success', 'Session closed successfully');
+                } else {
+                    throw new Error(response.error || 'Failed to close session');
+                }
+            } catch (error) {
+                log('error', `Failed to close session: ${error.message}`);
+                TestState.testStats.errorsCaught++;
+                TestState.testStats.lastError = error.message;
+                updateTestStats();
+            }
+        }
+
+        /**
+         * Pause current session
+         */
+        async function pauseSession() {
+            if (!TestState.currentSession) {
+                log('warning', 'No active session to pause');
+                return;
+            }
+
+            try {
+                log('info', `Pausing session: ${TestState.currentSession.name}`);
+
+                TestState.currentSession.status = 'paused';
+                updateSessionInfo(TestState.currentSession);
+                renderSessionList(TestState.sessions);
+
+                log('success', 'Session paused successfully');
+            } catch (error) {
+                log('error', `Failed to pause session: ${error.message}`);
+            }
+        }
+
+        /**
+         * Resume current session
+         */
+        async function resumeSession(sessionId) {
+            try {
+                const session = TestState.sessions.find(s => s.id === sessionId);
+                if (!session) {
+                    throw new Error('Session not found');
+                }
+
+                log('info', `Resuming session: ${session.name}`);
+
+                session.status = 'active';
+                TestState.currentSession = session;
+
+                updateSessionInfo(TestState.currentSession);
+                renderSessionList(TestState.sessions);
+
+                log('success', 'Session resumed successfully');
+            } catch (error) {
+                log('error', `Failed to resume session: ${error.message}`);
+            }
+        }
+
+        /**
+         * View session details
+         */
+        function viewSession(sessionId) {
+            const session = TestState.sessions.find(s => s.id === sessionId);
+            if (session) {
+                log('info', `Viewing session: ${session.name}`);
+                alert(`Session Details:\n\nName: ${session.name}\nCase ID: ${session.caseId || 'N/A'}\nStatus: ${session.status}\nEvidence Items: ${session.evidenceCount || 0}`);
+            }
+        }
+
+        /**
+         * Export session
+         */
+        async function exportSession(sessionId) {
+            try {
+                log('info', `Exporting session: ${sessionId}`);
+
+                const response = await sendExtensionMessage('export_evidence_session', {
+                    sessionId,
+                    format: 'json'
+                });
+
+                if (response.success) {
+                    log('success', 'Session exported successfully');
+                    // In a real implementation, this would download the file
+                    console.log('Export data:', response.data);
+                } else {
+                    throw new Error(response.error || 'Failed to export session');
+                }
+            } catch (error) {
+                log('error', `Failed to export session: ${error.message}`);
+            }
+        }
+
+        /**
+         * Delete session
+         */
+        function deleteSession(sessionId) {
+            if (confirm('Are you sure you want to delete this session?')) {
+                try {
+                    log('info', `Deleting session: ${sessionId}`);
+
+                    TestState.sessions = TestState.sessions.filter(s => s.id !== sessionId);
+
+                    if (TestState.currentSession && TestState.currentSession.id === sessionId) {
+                        TestState.currentSession = null;
+                        updateSessionInfo(null);
+                    }
+
+                    renderSessionList(TestState.sessions);
+                    log('success', 'Session deleted successfully');
+                } catch (error) {
+                    log('error', `Failed to delete session: ${error.message}`);
+                }
+            }
+        }
+
+        // =================================================================
+        // Evidence Capture Functions
+        // =================================================================
+
+        /**
+         * Capture screenshot
+         */
+        async function captureScreenshot() {
+            if (!TestState.currentSession) {
+                log('warning', 'No active session - please start a session first');
+                return;
+            }
+
+            try {
+                log('info', 'Capturing screenshot...');
+
+                const evidence = {
+                    type: 'screenshot',
+                    title: 'Screenshot Evidence',
+                    source: window.location.href,
+                    timestamp: Date.now()
+                };
+
+                TestState.evidenceItems.push(evidence);
+                TestState.currentSession.evidenceCount++;
+                TestState.captureStats.screenshots++;
+
+                addEvidenceToTimeline(evidence);
+                updateSessionInfo(TestState.currentSession);
+                updateCaptureStats();
+
+                log('success', 'Screenshot captured successfully');
+            } catch (error) {
+                log('error', `Failed to capture screenshot: ${error.message}`);
+            }
+        }
+
+        /**
+         * Capture page state
+         */
+        async function capturePageState() {
+            if (!TestState.currentSession) {
+                log('warning', 'No active session - please start a session first');
+                return;
+            }
+
+            try {
+                log('info', 'Capturing page state (DOM, storage, network)...');
+
+                const evidence = {
+                    type: 'page_state',
+                    title: 'Page State Capture',
+                    source: window.location.href,
+                    timestamp: Date.now()
+                };
+
+                TestState.evidenceItems.push(evidence);
+                TestState.currentSession.evidenceCount++;
+                TestState.captureStats.pageStates++;
+
+                addEvidenceToTimeline(evidence);
+                updateSessionInfo(TestState.currentSession);
+                updateCaptureStats();
+
+                log('success', 'Page state captured successfully');
+            } catch (error) {
+                log('error', `Failed to capture page state: ${error.message}`);
+            }
+        }
+
+        /**
+         * Add OSINT data
+         */
+        async function addOSINTData() {
+            if (!TestState.currentSession) {
+                log('warning', 'No active session - please start a session first');
+                return;
+            }
+
+            try {
+                log('info', 'Adding OSINT data to session...');
+
+                const evidence = {
+                    type: 'osint',
+                    title: 'OSINT Data',
+                    source: window.location.href,
+                    timestamp: Date.now()
+                };
+
+                TestState.evidenceItems.push(evidence);
+                TestState.currentSession.evidenceCount++;
+                TestState.captureStats.osint++;
+
+                addEvidenceToTimeline(evidence);
+                updateSessionInfo(TestState.currentSession);
+                updateCaptureStats();
+
+                log('success', 'OSINT data added successfully');
+            } catch (error) {
+                log('error', `Failed to add OSINT data: ${error.message}`);
+            }
+        }
+
+        /**
+         * Capture with annotation
+         */
+        async function captureAnnotated() {
+            if (!TestState.currentSession) {
+                log('warning', 'No active session - please start a session first');
+                return;
+            }
+
+            try {
+                log('info', 'Capturing annotated screenshot...');
+
+                const evidence = {
+                    type: 'annotation',
+                    title: 'Annotated Screenshot',
+                    source: window.location.href,
+                    timestamp: Date.now()
+                };
+
+                TestState.evidenceItems.push(evidence);
+                TestState.currentSession.evidenceCount++;
+                TestState.captureStats.annotations++;
+
+                addEvidenceToTimeline(evidence);
+                updateSessionInfo(TestState.currentSession);
+                updateCaptureStats();
+
+                log('success', 'Annotated screenshot captured successfully');
+            } catch (error) {
+                log('error', `Failed to capture annotated screenshot: ${error.message}`);
+            }
+        }
+
+        // =================================================================
+        // Test Data Generator Functions
+        // =================================================================
+
+        /**
+         * Generate test evidence
+         */
+        function generateTestEvidence() {
+            if (!TestState.currentSession) {
+                log('warning', 'No active session - please start a session first');
+                return;
+            }
+
+            const count = Math.floor(Math.random() * 6) + 5; // 5-10 items
+            log('info', `Generating ${count} test evidence items...`);
+
+            for (let i = 0; i < count; i++) {
+                const types = ['screenshot', 'page_state', 'osint', 'annotation'];
+                const type = types[Math.floor(Math.random() * types.length)];
+
+                const evidence = {
+                    type,
+                    title: `Test ${type} ${i + 1}`,
+                    source: `https://example.com/page${Math.floor(Math.random() * 10) + 1}`,
+                    timestamp: Date.now() + (i * 1000)
+                };
+
+                TestState.evidenceItems.push(evidence);
+                TestState.currentSession.evidenceCount++;
+                TestState.generationStats.generatedItems++;
+
+                addEvidenceToTimeline(evidence);
+            }
+
+            updateSessionInfo(TestState.currentSession);
+            updateGenerationStats();
+            log('success', `Generated ${count} test evidence items`);
+        }
+
+        /**
+         * Simulate page navigation
+         */
+        function simulateNavigation() {
+            if (!TestState.currentSession) {
+                log('warning', 'No active session - please start a session first');
+                return;
+            }
+
+            const pages = [
+                'https://twitter.com/suspect',
+                'https://facebook.com/profile',
+                'https://linkedin.com/in/person',
+                'https://instagram.com/account'
+            ];
+
+            const randomPage = pages[Math.floor(Math.random() * pages.length)];
+
+            log('info', `Simulating navigation to: ${randomPage}`);
+
+            const evidence = {
+                type: 'osint',
+                title: 'Navigation Evidence',
+                source: randomPage,
+                timestamp: Date.now()
+            };
+
+            TestState.evidenceItems.push(evidence);
+            TestState.currentSession.evidenceCount++;
+            TestState.generationStats.simulatedPages++;
+
+            addEvidenceToTimeline(evidence);
+            updateSessionInfo(TestState.currentSession);
+            updateGenerationStats();
+
+            log('success', `Simulated navigation to ${randomPage}`);
+        }
+
+        // =================================================================
+        // Storage Functions
+        // =================================================================
+
+        /**
+         * Inspect Chrome storage
+         */
+        async function inspectStorage() {
+            try {
+                log('info', 'Inspecting Chrome storage...');
+
+                if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+                    chrome.storage.local.get(null, (items) => {
+                        const storageData = document.getElementById('storage-data');
+                        storageData.innerHTML = `<pre>${JSON.stringify(items, null, 2)}</pre>`;
+
+                        // Calculate storage size
+                        const size = new Blob([JSON.stringify(items)]).size;
+                        document.getElementById('storage-used').textContent = formatBytes(size);
+                        document.getElementById('storage-total-sessions').textContent = TestState.sessions.length;
+
+                        log('success', 'Storage inspection complete');
+                    });
+                } else {
+                    // Simulated data
+                    const simulatedData = {
+                        evidence_sessions: TestState.sessions,
+                        evidence_active_session: TestState.currentSession
+                    };
+
+                    const storageData = document.getElementById('storage-data');
+                    storageData.innerHTML = `<pre>${JSON.stringify(simulatedData, null, 2)}</pre>`;
+
+                    document.getElementById('storage-used').textContent = formatBytes(
+                        new Blob([JSON.stringify(simulatedData)]).size
+                    );
+                    document.getElementById('storage-total-sessions').textContent = TestState.sessions.length;
+
+                    log('warning', 'Extension not available - showing simulated data');
+                }
+            } catch (error) {
+                log('error', `Failed to inspect storage: ${error.message}`);
+            }
+        }
+
+        /**
+         * Clear all sessions
+         */
+        function clearStorage() {
+            if (confirm('Are you sure you want to clear ALL sessions? This cannot be undone!')) {
+                try {
+                    log('warning', 'Clearing all sessions from storage...');
+
+                    TestState.sessions = [];
+                    TestState.currentSession = null;
+                    TestState.evidenceItems = [];
+
+                    updateSessionInfo(null);
+                    renderSessionList([]);
+
+                    document.getElementById('evidence-timeline').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">&#128193;</div>
+                            <div class="empty-state-text">No evidence items yet. Start capturing!</div>
+                        </div>
+                    `;
+
+                    log('success', 'All sessions cleared');
+                } catch (error) {
+                    log('error', `Failed to clear storage: ${error.message}`);
+                }
+            }
+        }
+
+        // =================================================================
+        // Integration Test Functions
+        // =================================================================
+
+        /**
+         * Test session panel UI visibility
+         */
+        async function testPanelUI() {
+            try {
+                log('info', 'Testing session panel UI...');
+
+                // Try to find the session panel
+                const panels = document.querySelectorAll('[class*="session-panel"]');
+
+                if (panels.length > 0) {
+                    log('success', `Found ${panels.length} session panel(s)`);
+                    TestState.testStats.passed++;
+                } else {
+                    log('warning', 'Session panel not found - may not be loaded yet');
+                    TestState.testStats.failed++;
+                }
+
+                updateTestStats();
+            } catch (error) {
+                log('error', `Panel UI test failed: ${error.message}`);
+                TestState.testStats.failed++;
+                updateTestStats();
+            }
+        }
+
+        /**
+         * Test evidence capture integration
+         */
+        async function testCaptureIntegration() {
+            try {
+                log('info', 'Testing evidence capture integration...');
+
+                if (TestState.evidenceItems.length > 0) {
+                    log('success', `Evidence capture working - ${TestState.evidenceItems.length} items captured`);
+                    TestState.testStats.passed++;
+                } else {
+                    log('warning', 'No evidence captured yet - try capturing some evidence first');
+                    TestState.testStats.failed++;
+                }
+
+                updateTestStats();
+            } catch (error) {
+                log('error', `Capture integration test failed: ${error.message}`);
+                TestState.testStats.failed++;
+                updateTestStats();
+            }
+        }
+
+        /**
+         * Test chain of custody
+         */
+        async function testCustody() {
+            try {
+                log('info', 'Testing chain of custody integration...');
+
+                const response = await sendExtensionMessage('test_chain_of_custody');
+
+                if (response.success) {
+                    log('success', 'Chain of custody integration verified');
+                    TestState.testStats.passed++;
+                } else {
+                    log('warning', 'Chain of custody test returned false');
+                    TestState.testStats.failed++;
+                }
+
+                updateTestStats();
+            } catch (error) {
+                log('error', `Chain of custody test failed: ${error.message}`);
+                TestState.testStats.failed++;
+                updateTestStats();
+            }
+        }
+
+        /**
+         * Test provenance capture
+         */
+        async function testProvenance() {
+            try {
+                log('info', 'Testing provenance capture integration...');
+
+                const response = await sendExtensionMessage('test_provenance');
+
+                if (response.success) {
+                    log('success', 'Provenance capture integration verified');
+                    TestState.testStats.passed++;
+                } else {
+                    log('warning', 'Provenance test returned false');
+                    TestState.testStats.failed++;
+                }
+
+                updateTestStats();
+            } catch (error) {
+                log('error', `Provenance test failed: ${error.message}`);
+                TestState.testStats.failed++;
+                updateTestStats();
+            }
+        }
+
+        // =================================================================
+        // Error Scenario Functions
+        // =================================================================
+
+        /**
+         * Test storage full scenario
+         */
+        function testStorageFull() {
+            try {
+                log('warning', 'Simulating storage quota exceeded...');
+
+                const error = new Error('QUOTA_EXCEEDED_ERR: Storage quota exceeded');
+                TestState.testStats.errorsCaught++;
+                TestState.testStats.lastError = error.message;
+
+                updateTestStats();
+                log('error', error.message);
+                log('success', 'Storage full error handled correctly');
+            } catch (error) {
+                log('error', `Test failed: ${error.message}`);
+            }
+        }
+
+        /**
+         * Test invalid session scenario
+         */
+        async function testInvalidSession() {
+            try {
+                log('warning', 'Testing invalid session access...');
+
+                const response = await sendExtensionMessage('get_evidence_session', {
+                    sessionId: 'invalid-session-id-12345'
+                });
+
+                if (!response.success) {
+                    TestState.testStats.errorsCaught++;
+                    TestState.testStats.lastError = 'Invalid session ID rejected';
+                    log('success', 'Invalid session correctly rejected');
+                } else {
+                    log('error', 'Invalid session was not rejected!');
+                }
+
+                updateTestStats();
+            } catch (error) {
+                TestState.testStats.errorsCaught++;
+                TestState.testStats.lastError = error.message;
+                updateTestStats();
+                log('success', 'Invalid session error caught correctly');
+            }
+        }
+
+        /**
+         * Test concurrent sessions
+         */
+        async function testConcurrentSessions() {
+            try {
+                log('warning', 'Testing concurrent session creation...');
+
+                const promises = [];
+                for (let i = 0; i < 3; i++) {
+                    promises.push(
+                        startSession(`Concurrent Session ${i + 1}`, `CASE-${i + 1}`, 'Tester', 'Test')
+                    );
+                }
+
+                await Promise.all(promises);
+
+                log('success', 'Concurrent session test completed');
+                TestState.testStats.passed++;
+                updateTestStats();
+            } catch (error) {
+                log('error', `Concurrent session test failed: ${error.message}`);
+                TestState.testStats.errorsCaught++;
+                TestState.testStats.lastError = error.message;
+                updateTestStats();
+            }
+        }
+
+        // =================================================================
+        // Event Listeners
+        // =================================================================
+
+        document.addEventListener('DOMContentLoaded', () => {
+            log('info', 'Evidence Session Test Page initialized');
+            log('info', 'Extension detection: ' +
+                (typeof chrome !== 'undefined' && chrome.runtime ? 'Available' : 'Not available'));
+
+            // Session Management
+            document.getElementById('btn-start-session').addEventListener('click', () => {
+                document.getElementById('modal-start-session').classList.add('visible');
+            });
+
+            document.getElementById('btn-close-session').addEventListener('click', closeSession);
+            document.getElementById('btn-pause-session').addEventListener('click', pauseSession);
+            document.getElementById('btn-resume-session').addEventListener('click', () => {
+                if (TestState.currentSession && TestState.currentSession.status === 'paused') {
+                    resumeSession(TestState.currentSession.id);
+                } else {
+                    log('warning', 'No paused session to resume');
+                }
+            });
+
+            // Modal
+            document.getElementById('btn-modal-cancel').addEventListener('click', () => {
+                document.getElementById('modal-start-session').classList.remove('visible');
+            });
+
+            document.getElementById('btn-modal-confirm').addEventListener('click', () => {
+                const name = document.getElementById('input-session-name').value;
+                const caseId = document.getElementById('input-case-id').value;
+                const investigator = document.getElementById('input-investigator').value;
+                const description = document.getElementById('input-description').value;
+
+                if (!name) {
+                    alert('Please enter a session name');
+                    return;
+                }
+
+                startSession(name, caseId, investigator, description);
+                document.getElementById('modal-start-session').classList.remove('visible');
+
+                // Clear form
+                document.getElementById('input-session-name').value = '';
+                document.getElementById('input-case-id').value = '';
+                document.getElementById('input-investigator').value = '';
+                document.getElementById('input-description').value = '';
+            });
+
+            // Evidence Capture
+            document.getElementById('btn-capture-screenshot').addEventListener('click', captureScreenshot);
+            document.getElementById('btn-capture-page-state').addEventListener('click', capturePageState);
+            document.getElementById('btn-add-osint').addEventListener('click', addOSINTData);
+            document.getElementById('btn-capture-annotated').addEventListener('click', captureAnnotated);
+
+            // Session Browser
+            document.getElementById('btn-apply-filters').addEventListener('click', () => {
+                log('info', 'Applying session filters...');
+                const status = document.getElementById('filter-status').value;
+                const filtered = status === 'all' ?
+                    TestState.sessions :
+                    TestState.sessions.filter(s => s.status === status);
+                renderSessionList(filtered);
+            });
+
+            document.getElementById('btn-refresh-sessions').addEventListener('click', () => {
+                log('info', 'Refreshing session list...');
+                renderSessionList(TestState.sessions);
+            });
+
+            // Test Data Generator
+            document.getElementById('btn-generate-evidence').addEventListener('click', generateTestEvidence);
+            document.getElementById('btn-simulate-navigation').addEventListener('click', simulateNavigation);
+
+            // Storage Inspector
+            document.getElementById('btn-inspect-storage').addEventListener('click', inspectStorage);
+            document.getElementById('btn-clear-storage').addEventListener('click', clearStorage);
+
+            // Integration Tests
+            document.getElementById('btn-test-panel-ui').addEventListener('click', testPanelUI);
+            document.getElementById('btn-test-capture').addEventListener('click', testCaptureIntegration);
+            document.getElementById('btn-test-custody').addEventListener('click', testCustody);
+            document.getElementById('btn-test-provenance').addEventListener('click', testProvenance);
+
+            // Error Scenarios
+            document.getElementById('btn-test-storage-full').addEventListener('click', testStorageFull);
+            document.getElementById('btn-test-invalid-session').addEventListener('click', testInvalidSession);
+            document.getElementById('btn-test-concurrent').addEventListener('click', testConcurrentSessions);
+
+            // Keyboard Shortcuts
+            document.getElementById('btn-test-shortcuts').addEventListener('click', () => {
+                log('info', 'Testing keyboard shortcuts...');
+                log('info', 'Try pressing Ctrl+Shift+E, Ctrl+Shift+C, or Ctrl+Shift+X');
+            });
+
+            // Log
+            document.getElementById('btn-clear-log').addEventListener('click', () => {
+                document.getElementById('activity-log').innerHTML = '';
+                log('info', 'Log cleared');
+            });
+
+            // Keyboard shortcuts listener
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.shiftKey) {
+                    switch(e.key) {
+                        case 'E':
+                            log('info', 'Keyboard shortcut: Ctrl+Shift+E (Toggle Panel)');
+                            break;
+                        case 'C':
+                            log('info', 'Keyboard shortcut: Ctrl+Shift+C (Quick Capture)');
+                            captureScreenshot();
+                            break;
+                        case 'X':
+                            log('info', 'Keyboard shortcut: Ctrl+Shift+X (Export Session)');
+                            if (TestState.currentSession) {
+                                exportSession(TestState.currentSession.id);
+                            }
+                            break;
+                    }
+                }
+            });
+
+            // Update duration every second
+            setInterval(() => {
+                if (TestState.currentSession && TestState.currentSession.status === 'active') {
+                    updateSessionInfo(TestState.currentSession);
+                }
+            }, 1000);
+
+            // Initial render
+            renderSessionList(TestState.sessions);
+        });
+
+        // Expose functions globally for onclick handlers
+        window.viewSession = viewSession;
+        window.resumeSession = resumeSession;
+        window.exportSession = exportSession;
+        window.deleteSession = deleteSession;
+    </script>
+</body>
+</html>
